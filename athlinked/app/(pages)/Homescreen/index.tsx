@@ -1,5 +1,6 @@
 import Herosection from '@/components/Homescreen/Herosection';
 import Hersosection1 from '@/components/Homescreen/Herosection1';
+import Herosection2 from '@/components/Homescreen/Herosection2';
 
 export default function Hello() {
   return (
@@ -7,8 +8,7 @@ export default function Hello() {
       <main className="flex min-h-screen w-full flex-col ">
         <Herosection />
         <Hersosection1/>
-    
-
+        <Herosection2 />
       </main>
     </div>
   );
