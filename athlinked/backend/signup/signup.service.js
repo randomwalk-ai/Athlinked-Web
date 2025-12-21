@@ -1,22 +1,62 @@
 const signupModel = require('./signup.model');
 const { hashPassword } = require('../utils/hash');
+const { startOTPFlow, verifyOTP } = require('./otp.service');
+const { sendOTPEmail } = require('../utils/email');
 
 /**
- * Service to handle signup request
+ * Start signup process: validate email, generate and send OTP
  * @param {object} userData - User registration data
  * @returns {Promise<object>} Service result
  */
-async function signupService(userData) {
+async function startSignupService(userData) {
   try {
-    const existingUser = await signupModel.findByEmail(userData.email);
+    if (!userData.email) {
+      throw new Error('Email is required');
+    }
+
+    const email = userData.email.toLowerCase().trim();
+    const existingUser = await signupModel.findByEmail(email);
     if (existingUser) {
       throw new Error('Email already registered');
     }
 
-    const hashedPassword = await hashPassword(userData.password);
+    const otp = startOTPFlow({ ...userData, email });
+
+    console.log(`🔐 OTP generated for ${email} (NOT returned in response)`);
+    await sendOTPEmail(email, otp);
+
+    return {
+      success: true,
+      message: 'OTP sent to email',
+    };
+  } catch (error) {
+    console.error('Start signup service error:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Verify OTP and create user account
+ * @param {string} email - User email
+ * @param {string} otp - User-entered OTP
+ * @returns {Promise<object>} Service result with user data
+ */
+async function verifyOtpService(email, otp) {
+  try {
+    const verification = verifyOTP(email, otp);
+
+    if (!verification.isValid) {
+      const error = new Error(verification.error);
+      error.errorType = verification.errorType;
+      throw error;
+    }
+
+    const { signupData } = verification;
+
+    const hashedPassword = await hashPassword(signupData.password);
 
     const createdUser = await signupModel.createUser({
-      ...userData,
+      ...signupData,
       password: hashedPassword,
     });
 
@@ -33,12 +73,13 @@ async function signupService(userData) {
       },
     };
   } catch (error) {
-    console.error('Signup service error:', error.message);
+    console.error('Verify OTP service error:', error.message);
     throw error;
   }
 }
 
 module.exports = {
-  signupService,
+  startSignupService,
+  verifyOtpService,
 };
 

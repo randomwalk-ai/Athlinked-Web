@@ -14,7 +14,6 @@ interface SignupFormStepsProps {
   onContinue: () => void;
   onTogglePassword: () => void;
   onToggleConfirmPassword: () => void;
-  generatedOTP?: string;
 }
 
 export default function SignupFormSteps({
@@ -28,7 +27,6 @@ export default function SignupFormSteps({
   onContinue,
   onTogglePassword,
   onToggleConfirmPassword,
-  generatedOTP,
 }: SignupFormStepsProps) {
   // Step 0: Join as - User Type Selection
   if (currentStep === 0) {
@@ -78,7 +76,6 @@ export default function SignupFormSteps({
       <OTPVerification
         formData={formData}
         onFormDataChange={onFormDataChange}
-        generatedOTP={generatedOTP}
         selectedUserType={selectedUserType}
         onContinue={onContinue}
       />

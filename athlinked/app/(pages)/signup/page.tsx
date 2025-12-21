@@ -10,7 +10,6 @@ export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [generatedOTP, setGeneratedOTP] = useState<string>('');
 
   // Form data
   const [formData, setFormData] = useState({
@@ -42,27 +41,60 @@ export default function SignupPage() {
   const currentSteps =
     selectedUserType === 'athlete' ? athleteSteps : otherSteps;
 
-  // Generate 6-digit OTP
-  const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
-  const handleContinue = () => {
+  const handleContinue = async () => {
     // Determine OTP step based on user type
     const otpStep = selectedUserType === 'athlete' ? 3 : 2;
     
-    // If moving to OTP step, generate OTP
+    // If moving to OTP step, call backend to send OTP via email
     if (
       ((selectedUserType === 'athlete' && currentStep === 2) ||
-        (selectedUserType !== 'athlete' && currentStep === 1)) &&
-      !generatedOTP
+        (selectedUserType !== 'athlete' && currentStep === 1))
     ) {
-      const otp = generateOTP();
-      setGeneratedOTP(otp);
-    }
+      try {
+        // Prepare signup data for OTP request
+        const signupData = {
+          email: formData.email,
+          user_type: selectedUserType,
+          full_name: formData.fullName,
+          dob: formData.dateOfBirth,
+          sports_played: formData.sportsPlayed ? [formData.sportsPlayed] : [],
+          primary_sport: formData.primarySport || null,
+          password: formData.password,
+          parent_name: formData.parentName || null,
+          parent_email: formData.parentEmail || null,
+          parent_dob: formData.parentDOB || null,
+        };
 
-    if (currentStep < currentSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
+        // Call backend to send OTP via email
+        const response = await fetch('http://localhost:3001/api/signup/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(signupData),
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          alert(data.message || 'Failed to send OTP. Please try again.');
+          return;
+        }
+
+        // OTP sent successfully, proceed to OTP verification step
+        if (currentStep < currentSteps.length - 1) {
+          setCurrentStep(currentStep + 1);
+        }
+      } catch (error) {
+        console.error('Error sending OTP:', error);
+        alert('Failed to send OTP. Please ensure the backend server is running.');
+        return;
+      }
+    } else {
+      // Not moving to OTP step, just advance
+      if (currentStep < currentSteps.length - 1) {
+        setCurrentStep(currentStep + 1);
+      }
     }
   };
 
@@ -102,7 +134,6 @@ export default function SignupPage() {
             onToggleConfirmPassword={() =>
               setShowConfirmPassword(!showConfirmPassword)
             }
-            generatedOTP={generatedOTP}
           />
         </div>
       </div>

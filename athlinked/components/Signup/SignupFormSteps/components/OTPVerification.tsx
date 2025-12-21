@@ -3,7 +3,6 @@ import { useState } from 'react';
 interface OTPVerificationProps {
   formData: any;
   onFormDataChange: (data: any) => void;
-  generatedOTP?: string;
   selectedUserType?: string;
   onContinue?: () => void;
 }
@@ -11,7 +10,6 @@ interface OTPVerificationProps {
 export default function OTPVerification({
   formData,
   onFormDataChange,
-  generatedOTP,
   selectedUserType,
   onContinue,
 }: OTPVerificationProps) {
@@ -26,42 +24,21 @@ export default function OTPVerification({
       return;
     }
 
-    if (!generatedOTP) {
-      setVerificationMessage('OTP not generated. Please refresh and try again.');
-      return;
-    }
-
-    // Compare entered OTP with generated OTP
-    if (formData.otp !== generatedOTP) {
-      setVerificationMessage('Invalid OTP. Please try again.');
-      return;
-    }
-
-    // OTP is correct - proceed to save user data
+    // Verify OTP with backend
     setIsSubmitting(true);
     setVerificationMessage('');
 
     try {
-      // Prepare data for API call
-      const apiData = {
-        user_type: selectedUserType,
-        full_name: formData.fullName,
-        dob: formData.dateOfBirth,
-        sports_played: formData.sportsPlayed ? [formData.sportsPlayed] : [],
-        primary_sport: formData.primarySport || null,
-        email: formData.email,
-        password: formData.password,
-        parent_name: formData.parentName || null,
-        parent_email: formData.parentEmail || null,
-        parent_dob: formData.parentDOB || null,
-      };
-
-      const response = await fetch('http://localhost:3001/api/signup', {
+      // Call backend to verify OTP and create user
+      const response = await fetch('http://localhost:3001/api/signup/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(apiData),
+        body: JSON.stringify({
+          email: formData.email,
+          otp: formData.otp,
+        }),
       });
 
       const data = await response.json();
@@ -74,18 +51,16 @@ export default function OTPVerification({
           onContinue();
         }
       } else {
-        // Display validation errors if available
-        const errorMessage = data.errors && data.errors.length > 0
-          ? data.errors.join(', ')
-          : data.message || 'Failed to create account. Please try again.';
+        // Display error message from backend
+        const errorMessage = data.message || 'Failed to verify OTP. Please try again.';
         setVerificationMessage(errorMessage);
       }
     } catch (error) {
-      console.error('Error creating account:', error);
+      console.error('Error verifying OTP:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         setVerificationMessage('Cannot connect to server. Please ensure the backend server is running on port 3001.');
       } else {
-        setVerificationMessage('Failed to create account. Please try again.');
+        setVerificationMessage('Failed to verify OTP. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -120,19 +95,6 @@ export default function OTPVerification({
           </button>
         </div>
       </div>
-
-      {/* Display OTP above Continue button */}
-      {generatedOTP && (
-        <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
-          <p className="text-xs text-gray-600 mb-2 text-center">Your OTP Code:</p>
-          <p className="text-3xl font-bold text-yellow-600 tracking-widest text-center">
-            {generatedOTP}
-          </p>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            This code expires in 5 minutes
-          </p>
-        </div>
-      )}
 
       {/* Verification Message */}
       {verificationMessage && (
