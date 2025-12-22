@@ -223,7 +223,7 @@ export default function FileUploadModal({
             <button
               onClick={handleShare}
               disabled={!selectedFile || isUploading}
-              className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-[#CB9729] hover:bg-yellow-600 text-white rounded-lg transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? 'Uploading...' : 'Share'}
             </button>

@@ -69,14 +69,14 @@ export default function ParentDetailsForm({
 
       <button
         onClick={onContinue}
-        className="w-full bg-gradient-to-r from-yellow-200 to-yellow-300 hover:from-yellow-300 hover:to-yellow-400 text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base"
+        className="w-full bg-[#CB9729] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base"
       >
         Continue
       </button>
 
       <div className="text-center text-xs sm:text-sm text-gray-600">
         <span className="text-gray-700">Already have an account? </span>
-        <a href="#" className="text-orange-500 font-medium hover:underline">
+        <a href="#" className="text-[#CB9729] font-medium hover:underline">
           Sign in
         </a>
       </div>

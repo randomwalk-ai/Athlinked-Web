@@ -66,13 +66,16 @@ export default function SignupPage() {
         };
 
         // Call backend to send OTP via email
-        const response = await fetch('http://localhost:3001/api/signup/start', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(signupData),
-        });
+        const response = await fetch(
+          'https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/start',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(signupData),
+          }
+        );
 
         const data = await response.json();
 
@@ -106,7 +109,7 @@ export default function SignupPage() {
       <SignupHero />
 
       {/* Right Side - Sign Up Form */}
-      <div className="w-full md:w-1/2 xl:w-2/5 flex items-center justify-center bg-gray-100 p-4 sm:p-6 md:p-8 md:min-h-screen">
+      <div className="w-full md:w-1/2 xl:w-3/5 flex items-center justify-center bg-gray-100 p-4 sm:p-6 md:p-8 md:min-h-screen">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-6 sm:p-8 lg:p-10 xl:p-12 my-6 md:my-0">
           {/* Logo - Shows on all screen sizes */}
           <div className="flex items-center mb-6 sm:mb-8">
