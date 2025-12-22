@@ -17,9 +17,9 @@ function startOTPFlow(signupData) {
   const email = signupData.email.toLowerCase();
   const otp = generateOTP();
   const expiresInMinutes = 5;
-  
+
   storeOTP(email, otp, expiresInMinutes, signupData);
-  
+
   return otp;
 }
 
@@ -31,7 +31,7 @@ function startOTPFlow(signupData) {
  */
 function verifyOTP(email, userEnteredOTP) {
   const stored = getOTP(email.toLowerCase());
-  
+
   if (!stored) {
     return {
       isValid: false,
@@ -39,7 +39,7 @@ function verifyOTP(email, userEnteredOTP) {
       errorType: 'NOT_FOUND',
     };
   }
-  
+
   if (stored.expired) {
     return {
       isValid: false,
@@ -47,7 +47,7 @@ function verifyOTP(email, userEnteredOTP) {
       errorType: 'EXPIRED',
     };
   }
-  
+
   if (stored.otp !== userEnteredOTP) {
     return {
       isValid: false,
@@ -55,9 +55,9 @@ function verifyOTP(email, userEnteredOTP) {
       errorType: 'INVALID',
     };
   }
-  
+
   deleteOTP(email.toLowerCase());
-  
+
   return {
     isValid: true,
     signupData: stored.signupData,
@@ -69,4 +69,3 @@ module.exports = {
   startOTPFlow,
   verifyOTP,
 };
-

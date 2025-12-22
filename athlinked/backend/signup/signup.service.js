@@ -62,6 +62,9 @@ async function verifyOtpService(email, otp) {
 
     console.log(`✅ User created successfully: ${createdUser.email}`);
 
+    // Fetch complete user data including primary_sport
+    const completeUser = await signupModel.findByEmail(createdUser.email);
+
     return {
       success: true,
       message: 'Welcome',
@@ -70,6 +73,7 @@ async function verifyOtpService(email, otp) {
         email: createdUser.email,
         full_name: createdUser.full_name,
         user_type: createdUser.user_type,
+        primary_sport: completeUser?.primary_sport || null,
       },
     };
   } catch (error) {
@@ -82,4 +86,3 @@ module.exports = {
   startSignupService,
   verifyOtpService,
 };
-

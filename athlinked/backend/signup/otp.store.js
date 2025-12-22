@@ -13,14 +13,16 @@ const otpStore = new Map();
  */
 function storeOTP(email, otp, expiresInMinutes, signupData) {
   const expiresAt = Date.now() + expiresInMinutes * 60 * 1000;
-  
+
   otpStore.set(email.toLowerCase(), {
     otp,
     expiresAt,
     signupData,
   });
-  
-  console.log(`📦 OTP stored for ${email.toLowerCase()}, expires in ${expiresInMinutes} minutes`);
+
+  console.log(
+    `📦 OTP stored for ${email.toLowerCase()}, expires in ${expiresInMinutes} minutes`
+  );
 }
 
 /**
@@ -30,18 +32,18 @@ function storeOTP(email, otp, expiresInMinutes, signupData) {
  */
 function getOTP(email) {
   const stored = otpStore.get(email.toLowerCase());
-  
+
   if (!stored) {
     return null;
   }
-  
+
   const now = Date.now();
   if (now > stored.expiresAt) {
     otpStore.delete(email.toLowerCase());
     console.log(`⏰ OTP expired for ${email.toLowerCase()}`);
     return { expired: true };
   }
-  
+
   return stored;
 }
 
@@ -60,14 +62,14 @@ function deleteOTP(email) {
 function cleanExpiredOTPs() {
   const now = Date.now();
   let cleaned = 0;
-  
+
   for (const [email, data] of otpStore.entries()) {
     if (now > data.expiresAt) {
       otpStore.delete(email);
       cleaned++;
     }
   }
-  
+
   if (cleaned > 0) {
     console.log(`🧹 Cleaned ${cleaned} expired OTP(s)`);
   }
@@ -79,4 +81,3 @@ module.exports = {
   deleteOTP,
   cleanExpiredOTPs,
 };
-

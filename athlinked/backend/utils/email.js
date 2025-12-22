@@ -38,15 +38,16 @@ async function sendOTPEmail(to, otp) {
   try {
     const smtpPass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
     const smtpUser = process.env.SMTP_USER;
-    
+
     if (!smtpUser || !smtpPass) {
-      const errorMsg = 'SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS (or SMTP_PASSWORD) in .env';
+      const errorMsg =
+        'SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS (or SMTP_PASSWORD) in .env';
       console.error('❌', errorMsg);
       throw new Error(errorMsg);
     }
 
     console.log(`📤 Attempting to send OTP email to: ${to}`);
-    
+
     const transporter = createTransporter();
 
     await new Promise((resolve, reject) => {
@@ -79,9 +80,13 @@ async function sendOTPEmail(to, otp) {
       text: `Your AthLinked Signup OTP is: ${otp}. This OTP will expire in 5 minutes.`,
     };
 
-    console.log(`📧 Sending email from ${mailOptions.from} to ${mailOptions.to}`);
+    console.log(
+      `📧 Sending email from ${mailOptions.from} to ${mailOptions.to}`
+    );
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP email sent successfully to ${to}, Message ID: ${info.messageId}`);
+    console.log(
+      `✅ OTP email sent successfully to ${to}, Message ID: ${info.messageId}`
+    );
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Failed to send OTP email:', error);
@@ -91,15 +96,21 @@ async function sendOTPEmail(to, otp) {
       command: error.command,
       response: error.response,
     });
-    
+
     if (error.code === 'EAUTH') {
-      throw new Error('SMTP authentication failed. Please check your email credentials and ensure you are using an App Password for Gmail.');
+      throw new Error(
+        'SMTP authentication failed. Please check your email credentials and ensure you are using an App Password for Gmail.'
+      );
     } else if (error.code === 'ECONNECTION') {
-      throw new Error('Failed to connect to SMTP server. Please check your SMTP settings and network connection.');
+      throw new Error(
+        'Failed to connect to SMTP server. Please check your SMTP settings and network connection.'
+      );
     } else if (error.code === 'ETIMEDOUT') {
-      throw new Error('SMTP connection timed out. Please check your network connection.');
+      throw new Error(
+        'SMTP connection timed out. Please check your network connection.'
+      );
     }
-    
+
     throw new Error(`Failed to send email: ${error.message}`);
   }
 }
@@ -107,4 +118,3 @@ async function sendOTPEmail(to, otp) {
 module.exports = {
   sendOTPEmail,
 };
-

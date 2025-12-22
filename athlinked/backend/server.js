@@ -8,7 +8,7 @@ const server = app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-server.on('error', (err) => {
+server.on('error', err => {
   if (err.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use.`);
     console.log(`💡 To kill the process on port ${PORT}, run:`);
@@ -20,4 +20,3 @@ server.on('error', (err) => {
     process.exit(1);
   }
 });
-

@@ -2,11 +2,11 @@ const { execSync } = require('child_process');
 const PORT = process.env.PORT || 3001;
 
 try {
-  const output = execSync(`lsof -ti:${PORT}`, { 
+  const output = execSync(`lsof -ti:${PORT}`, {
     encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'ignore']
+    stdio: ['pipe', 'pipe', 'ignore'],
   }).trim();
-  
+
   if (output) {
     const pids = output.split('\n').filter(pid => pid.trim());
     console.log(`Found process(es) on port ${PORT}: ${pids.join(', ')}`);
@@ -15,7 +15,9 @@ try {
         execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
         console.log(`✅ Killed process ${pid}`);
       } catch (killError) {
-        console.log(`⚠️  Could not kill process ${pid} (may have already exited)`);
+        console.log(
+          `⚠️  Could not kill process ${pid} (may have already exited)`
+        );
       }
     });
   } else {
@@ -28,4 +30,3 @@ try {
     console.log(`⚠️  Could not check port ${PORT}: ${error.message}`);
   }
 }
-

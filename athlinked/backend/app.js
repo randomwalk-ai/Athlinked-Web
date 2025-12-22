@@ -3,6 +3,8 @@ const cors = require('cors');
 require('dotenv').config();
 
 const signupRoutes = require('./signup/signup.routes');
+const clipsRoutes = require('./clips/clips.routes');
+const commentsRoutes = require('./comments/comments.routes');
 
 const app = express();
 
@@ -11,6 +13,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files statically
+app.use('/uploads', express.static('public/uploads'));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
@@ -18,6 +23,8 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/signup', signupRoutes);
+app.use('/api/clips', clipsRoutes);
+app.use('/api/comments', commentsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -37,4 +44,3 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
-

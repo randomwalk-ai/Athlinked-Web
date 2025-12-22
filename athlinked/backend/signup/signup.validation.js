@@ -31,4 +31,3 @@ function validateSignup(data) {
 module.exports = {
   validateSignup,
 };
-

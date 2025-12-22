@@ -1,4 +1,7 @@
+'use client';
+
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface OTPVerificationProps {
   formData: any;
@@ -13,6 +16,7 @@ export default function OTPVerification({
   selectedUserType,
   onContinue,
 }: OTPVerificationProps) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState<string>('');
   const [isVerified, setIsVerified] = useState(false);
@@ -30,35 +34,49 @@ export default function OTPVerification({
 
     try {
       // Call backend to verify OTP and create user
-      const response = await fetch('http://localhost:3001/api/signup/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: formData.otp,
-        }),
-      });
+      const response = await fetch(
+        'http://localhost:3001/api/signup/verify-otp',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            otp: formData.otp,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (data.success) {
         setIsVerified(true);
-        setVerificationMessage(data.message || 'Welcome! Account created successfully.');
-        // Optionally call onContinue to move to next step or redirect
-        if (onContinue) {
-          onContinue();
+        setVerificationMessage(
+          data.message || 'Welcome! Account created successfully.'
+        );
+
+        // Store user email in localStorage for stats page
+        if (data.user?.email) {
+          localStorage.setItem('userEmail', data.user.email);
         }
+
+        // Redirect to stats page after a short delay
+        setTimeout(() => {
+          router.push('/stats');
+        }, 1000);
       } else {
         // Display error message from backend
-        const errorMessage = data.message || 'Failed to verify OTP. Please try again.';
+        const errorMessage =
+          data.message || 'Failed to verify OTP. Please try again.';
         setVerificationMessage(errorMessage);
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        setVerificationMessage('Cannot connect to server. Please ensure the backend server is running on port 3001.');
+        setVerificationMessage(
+          'Cannot connect to server. Please ensure the backend server is running on port 3001.'
+        );
       } else {
         setVerificationMessage('Failed to verify OTP. Please try again.');
       }
@@ -105,7 +123,9 @@ export default function OTPVerification({
               : 'bg-red-50 border border-red-200 text-red-700'
           }`}
         >
-          <p className="text-sm text-center font-medium">{verificationMessage}</p>
+          <p className="text-sm text-center font-medium">
+            {verificationMessage}
+          </p>
         </div>
       )}
 
@@ -114,7 +134,11 @@ export default function OTPVerification({
         disabled={isSubmitting || isVerified}
         className="w-full bg-gradient-to-r from-yellow-200 to-yellow-300 hover:from-yellow-300 hover:to-yellow-400 text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isSubmitting ? 'Creating Account...' : isVerified ? 'Account Created!' : 'Continue'}
+        {isSubmitting
+          ? 'Creating Account...'
+          : isVerified
+            ? 'Account Created!'
+            : 'Continue'}
       </button>
 
       <div className="text-center text-xs sm:text-sm text-gray-600">

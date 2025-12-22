@@ -14,5 +14,10 @@ router.post('/start', signupController.startSignup);
  */
 router.post('/verify-otp', signupController.verifyOtp);
 
-module.exports = router;
+/**
+ * GET /api/signup/user/:email
+ * Get user data by email
+ */
+router.get('/user/:email', signupController.getUserByEmail);
 
+module.exports = router;

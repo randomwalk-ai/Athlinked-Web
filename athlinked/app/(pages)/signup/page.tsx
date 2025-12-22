@@ -44,11 +44,11 @@ export default function SignupPage() {
   const handleContinue = async () => {
     // Determine OTP step based on user type
     const otpStep = selectedUserType === 'athlete' ? 3 : 2;
-    
+
     // If moving to OTP step, call backend to send OTP via email
     if (
-      ((selectedUserType === 'athlete' && currentStep === 2) ||
-        (selectedUserType !== 'athlete' && currentStep === 1))
+      (selectedUserType === 'athlete' && currentStep === 2) ||
+      (selectedUserType !== 'athlete' && currentStep === 1)
     ) {
       try {
         // Prepare signup data for OTP request
@@ -87,7 +87,9 @@ export default function SignupPage() {
         }
       } catch (error) {
         console.error('Error sending OTP:', error);
-        alert('Failed to send OTP. Please ensure the backend server is running.');
+        alert(
+          'Failed to send OTP. Please ensure the backend server is running.'
+        );
         return;
       }
     } else {

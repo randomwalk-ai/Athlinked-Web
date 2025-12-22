@@ -47,8 +47,8 @@ async function createUser(userData) {
   const sportsArray = Array.isArray(sports_played)
     ? sports_played
     : sports_played
-    ? [sports_played]
-    : null;
+      ? [sports_played]
+      : null;
 
   const query = `
     INSERT INTO users (
@@ -94,4 +94,3 @@ module.exports = {
   findByEmail,
   createUser,
 };
-

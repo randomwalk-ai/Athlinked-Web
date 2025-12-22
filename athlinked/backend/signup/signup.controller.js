@@ -70,7 +70,10 @@ async function verifyOtp(req, res) {
       });
     }
 
-    const result = await signupService.verifyOtpService(email.toLowerCase().trim(), otp.trim());
+    const result = await signupService.verifyOtpService(
+      email.toLowerCase().trim(),
+      otp.trim()
+    );
 
     return res.status(200).json(result);
   } catch (error) {
@@ -110,8 +113,50 @@ async function verifyOtp(req, res) {
   }
 }
 
+/**
+ * Controller to get user by email
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ */
+async function getUserByEmail(req, res) {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      });
+    }
+
+    const signupModel = require('./signup.model');
+    const user = await signupModel.findByEmail(email.toLowerCase().trim());
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Return user data without password
+    const { password, ...userData } = user;
+
+    return res.status(200).json({
+      success: true,
+      user: userData,
+    });
+  } catch (error) {
+    console.error('Get user by email error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+    });
+  }
+}
+
 module.exports = {
   startSignup,
   verifyOtp,
+  getUserByEmail,
 };
-
