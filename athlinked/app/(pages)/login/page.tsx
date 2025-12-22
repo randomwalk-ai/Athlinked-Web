@@ -7,7 +7,7 @@ import SignupHero from '@/components/Signup/SignupHero';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Can be email or username
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -24,21 +24,31 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: identifier, password }), // Backend still expects 'email' field
       });
 
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.message || 'Login failed. Please check your credentials.');
+        setError(
+          data.message || 'Login failed. Please check your credentials.'
+        );
         setLoading(false);
         return;
       }
 
-      // Store user email in localStorage (same as signup flow)
-      localStorage.setItem('userEmail', email);
-      
-      // Redirect to stats page
+      if (data.user?.email) {
+        localStorage.setItem('userEmail', data.user.email);
+      } else if (data.user?.username) {
+        localStorage.setItem('userEmail', `username:${data.user.username}`);
+      } else {
+        const isEmail = identifier.includes('@');
+        localStorage.setItem(
+          'userEmail',
+          isEmail ? identifier : `username:${identifier}`
+        );
+      }
+
       router.push('/stats');
     } catch (error) {
       console.error('Login error:', error);
@@ -81,22 +91,22 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Field */}
+            {/* Email/Username Field */}
             <div>
               <label
-                htmlFor="email"
+                htmlFor="identifier"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Email
+                Email/Username
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={e => setIdentifier(e.target.value)}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900"
-                placeholder="Enter your email"
+                placeholder="Enter your email or username"
                 disabled={loading}
               />
             </div>
@@ -114,7 +124,7 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent pr-12 text-gray-900"
                   placeholder="Enter your password"
@@ -145,6 +155,16 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Forgot Password Link */}
+          <div className="mt-4 text-center">
+            <a
+              href="/forgot-password"
+              className="text-sm text-yellow-500 hover:text-yellow-600 font-medium"
+            >
+              Forgot Password?
+            </a>
+          </div>
+
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
@@ -162,4 +182,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

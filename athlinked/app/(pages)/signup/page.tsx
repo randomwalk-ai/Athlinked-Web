@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoadingOTP, setIsLoadingOTP] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -50,6 +51,19 @@ export default function SignupPage() {
       (selectedUserType === 'athlete' && currentStep === 2) ||
       (selectedUserType !== 'athlete' && currentStep === 1)
     ) {
+      // Validate email/username
+      if (!formData.email || !formData.email.trim()) {
+        alert('Email or username is required');
+        return;
+      }
+
+      // If it's not an email (doesn't contain @), validate username length
+      if (!formData.email.includes('@') && formData.email.trim().length < 6) {
+        alert('Username must be at least 6 characters long');
+        return;
+      }
+
+      setIsLoadingOTP(true);
       try {
         // Prepare signup data for OTP request
         const signupData = {
@@ -66,21 +80,19 @@ export default function SignupPage() {
         };
 
         // Call backend to send OTP via email
-        const response = await fetch(
-          'https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/start',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(signupData),
-          }
-        );
+        const response = await fetch('http://localhost:3001/api/signup/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(signupData),
+        });
 
         const data = await response.json();
 
         if (!data.success) {
           alert(data.message || 'Failed to send OTP. Please try again.');
+          setIsLoadingOTP(false);
           return;
         }
 
@@ -88,11 +100,13 @@ export default function SignupPage() {
         if (currentStep < currentSteps.length - 1) {
           setCurrentStep(currentStep + 1);
         }
+        setIsLoadingOTP(false);
       } catch (error) {
         console.error('Error sending OTP:', error);
         alert(
           'Failed to send OTP. Please ensure the backend server is running.'
         );
+        setIsLoadingOTP(false);
         return;
       }
     } else {
@@ -132,6 +146,7 @@ export default function SignupPage() {
             formData={formData}
             showPassword={showPassword}
             showConfirmPassword={showConfirmPassword}
+            isLoadingOTP={isLoadingOTP}
             onFormDataChange={setFormData}
             onUserTypeSelect={setSelectedUserType}
             onContinue={handleContinue}

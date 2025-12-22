@@ -4,13 +4,12 @@ import Image from 'next/image';
 export default function Herosection() {
   return (
     <nav className="flex items-center justify-between px-3 md:px-8 py-4 bg-white">
-
       <div className="flex items-center">
         <Link href="/" className="flex items-center gap-2">
-          <Image 
-            src="/assets/Homescreen/Logo.png" 
-            alt="ATHLINKED Logo" 
-            width={180} 
+          <Image
+            src="/assets/Homescreen/Logo.png"
+            alt="ATHLINKED Logo"
+            width={180}
             height={50}
             className="w-32 h-8 md:w-[180px] md:h-[50px]"
             priority

@@ -20,32 +20,38 @@ export default function ManageResourcesPage() {
     {
       id: '1',
       title: 'Varsity Soccer League Finals',
-      image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&h=300&fit=crop',
     },
     {
       id: '2',
       title: 'Next-Gen Athlete Training',
-      image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=500&h=300&fit=crop',
     },
     {
       id: '3',
       title: 'Holistic Wellness for Athletes',
-      image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&h=300&fit=crop',
     },
     {
       id: '4',
       title: 'Mastering Mental Toughness',
-      image: 'https://images.unsplash.com/photo-1487956382158-bb926046304a?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1487956382158-bb926046304a?w=500&h=300&fit=crop',
     },
     {
       id: '5',
       title: 'Nutrition for Peak Performance',
-      image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500&h=300&fit=crop',
     },
     {
       id: '6',
       title: 'Effective Recovery Techniques',
-      image: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=500&h=300&fit=crop',
     },
   ];
 
@@ -53,17 +59,20 @@ export default function ManageResourcesPage() {
     {
       id: '1',
       title: 'Training Fundamentals',
-      image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&h=300&fit=crop',
     },
     {
       id: '2',
       title: 'Strength & Conditioning',
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&h=300&fit=crop',
     },
     {
       id: '3',
       title: 'Game Strategy Analysis',
-      image: 'https://images.unsplash.com/photo-1519311965067-36d3e5f33d39?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1519311965067-36d3e5f33d39?w=500&h=300&fit=crop',
     },
   ];
 
@@ -71,24 +80,28 @@ export default function ManageResourcesPage() {
     {
       id: '1',
       title: 'Training Schedule Template',
-      image: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=500&h=300&fit=crop',
     },
     {
       id: '2',
       title: 'Performance Tracking Sheet',
-      image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=300&fit=crop',
     },
     {
       id: '3',
       title: 'Meal Plan Template',
-      image: 'https://images.unsplash.com/photo-1606787364406-46a8c770d784?w=500&h=300&fit=crop',
+      image:
+        'https://images.unsplash.com/photo-1606787364406-46a8c770d784?w=500&h=300&fit=crop',
     },
   ];
 
   // State for each tab's data
   const [guidesData, setGuidesData] = useState<Resource[]>(initialGuidesData);
   const [videosData, setVideosData] = useState<Resource[]>(initialVideosData);
-  const [templatesData, setTemplatesData] = useState<Resource[]>(initialTemplatesData);
+  const [templatesData, setTemplatesData] =
+    useState<Resource[]>(initialTemplatesData);
 
   const getCurrentData = () => {
     switch (activeTab) {

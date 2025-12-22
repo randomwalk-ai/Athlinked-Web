@@ -19,19 +19,28 @@ export default function StatsPage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get user email from localStorage (set after signup)
-        const userEmail = localStorage.getItem('userEmail');
+        // Get user identifier from localStorage (set after signup)
+        const userIdentifier = localStorage.getItem('userEmail');
 
-        if (!userEmail) {
-          console.error('No user email found');
+        if (!userIdentifier) {
+          console.error('No user identifier found');
           setLoading(false);
           return;
         }
 
-        // Fetch user data from backend
-        const response = await fetch(
-          `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/user/${encodeURIComponent(userEmail)}`
-        );
+        // Check if it's a username (prefixed with "username:") or email
+        let response;
+        if (userIdentifier.startsWith('username:')) {
+          const username = userIdentifier.replace('username:', '');
+          response = await fetch(
+            `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
+          );
+        } else {
+          response = await fetch(
+            `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
+          );
+        }
+
         const data = await response.json();
 
         if (data.success && data.user) {

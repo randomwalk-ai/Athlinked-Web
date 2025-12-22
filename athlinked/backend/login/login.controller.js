@@ -12,7 +12,7 @@ async function login(req, res) {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required',
+        message: 'Email/username and password are required',
       });
     }
 
@@ -39,4 +39,3 @@ async function login(req, res) {
 module.exports = {
   login,
 };
-

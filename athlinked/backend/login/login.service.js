@@ -2,29 +2,45 @@ const loginModel = require('./login.model');
 const { comparePassword } = require('../utils/hash');
 
 /**
- * Authenticate user with email and password
- * @param {string} email - User email
+ * Check if string is an email
+ * @param {string} str - String to check
+ * @returns {boolean} True if email, false otherwise
+ */
+function isEmail(str) {
+  return str && str.includes('@');
+}
+
+/**
+ * Authenticate user with email/username and password
+ * @param {string} emailOrUsername - User email or username
  * @param {string} password - Plain text password
  * @returns {Promise<object>} Service result with user data if successful
  */
-async function loginService(email, password) {
+async function loginService(emailOrUsername, password) {
   try {
-    if (!email || !password) {
-      throw new Error('Email and password are required');
+    if (!emailOrUsername || !password) {
+      throw new Error('Email/username and password are required');
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-    const user = await loginModel.findByEmail(normalizedEmail);
+    const normalizedInput = emailOrUsername.toLowerCase().trim();
+    let user;
+
+    // Check if input is email or username
+    if (isEmail(normalizedInput)) {
+      user = await loginModel.findByEmail(normalizedInput);
+    } else {
+      user = await loginModel.findByUsername(normalizedInput);
+    }
 
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error('Invalid email/username or password');
     }
 
     // Compare provided password with hashed password
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      throw new Error('Invalid email or password');
+      throw new Error('Invalid email/username or password');
     }
 
     // Return user data without password
@@ -36,6 +52,7 @@ async function loginService(email, password) {
       user: {
         id: userWithoutPassword.id,
         email: userWithoutPassword.email,
+        username: userWithoutPassword.username || null,
         full_name: userWithoutPassword.full_name,
         user_type: userWithoutPassword.user_type,
         primary_sport: userWithoutPassword.primary_sport || null,
@@ -50,4 +67,3 @@ async function loginService(email, password) {
 module.exports = {
   loginService,
 };
-
