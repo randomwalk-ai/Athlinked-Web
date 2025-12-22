@@ -15,8 +15,8 @@ interface Resource {
 export default function ManageResourcesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('guides');
 
-  // Sample data with real images from Unsplash (free to use)
-  const guidesData: Resource[] = [
+  // Initial data with real images from Unsplash (free to use)
+  const initialGuidesData: Resource[] = [
     {
       id: '1',
       title: 'Varsity Soccer League Finals',
@@ -49,7 +49,7 @@ export default function ManageResourcesPage() {
     },
   ];
 
-  const videosData: Resource[] = [
+  const initialVideosData: Resource[] = [
     {
       id: '1',
       title: 'Training Fundamentals',
@@ -67,7 +67,7 @@ export default function ManageResourcesPage() {
     },
   ];
 
-  const templatesData: Resource[] = [
+  const initialTemplatesData: Resource[] = [
     {
       id: '1',
       title: 'Training Schedule Template',
@@ -85,6 +85,11 @@ export default function ManageResourcesPage() {
     },
   ];
 
+  // State for each tab's data
+  const [guidesData, setGuidesData] = useState<Resource[]>(initialGuidesData);
+  const [videosData, setVideosData] = useState<Resource[]>(initialVideosData);
+  const [templatesData, setTemplatesData] = useState<Resource[]>(initialTemplatesData);
+
   const getCurrentData = () => {
     switch (activeTab) {
       case 'guides':
@@ -99,8 +104,18 @@ export default function ManageResourcesPage() {
   };
 
   const handleDelete = (id: string) => {
-    console.log('Delete resource:', id);
-    // Add your delete logic here
+    // Remove the item based on active tab
+    switch (activeTab) {
+      case 'guides':
+        setGuidesData(guidesData.filter(item => item.id !== id));
+        break;
+      case 'videos':
+        setVideosData(videosData.filter(item => item.id !== id));
+        break;
+      case 'templates':
+        setTemplatesData(templatesData.filter(item => item.id !== id));
+        break;
+    }
   };
 
   const handleUpload = () => {
@@ -183,14 +198,14 @@ export default function ManageResourcesPage() {
           {getCurrentData().map(resource => (
             <div
               key={resource.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
             >
               {/* Image Container */}
               <div className="relative h-48 bg-gray-100">
                 <img
                   src={resource.image}
                   alt={resource.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover cursor-pointer"
                   onClick={() => handleCardClick(resource)}
                 />
                 {/* Delete Button */}
@@ -199,7 +214,8 @@ export default function ManageResourcesPage() {
                     e.stopPropagation();
                     handleDelete(resource.id);
                   }}
-                  className="absolute top-3 right-3 w-7 h-7 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-md"
+                  className="absolute top-3 right-3 w-7 h-7 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-md z-10"
+                  aria-label="Delete resource"
                 >
                   <X className="w-4 h-4 text-gray-600" />
                 </button>
