@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const signupRoutes = require('./signup/signup.routes');
+const loginRoutes = require('./login/login.routes');
 const clipsRoutes = require('./clips/clips.routes');
 const commentsRoutes = require('./comments/comments.routes');
 
@@ -23,6 +24,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/signup', signupRoutes);
+app.use('/api/login', loginRoutes);
 app.use('/api/clips', clipsRoutes);
 app.use('/api/comments', commentsRoutes);
 

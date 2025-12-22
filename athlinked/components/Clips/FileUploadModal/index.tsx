@@ -204,7 +204,7 @@ export default function FileUploadModal({
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Enter description for your clip..."
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none text-sm h-96"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none text-sm h-96 text-gray-900"
                   disabled={isUploading}
                 />
               </div>
