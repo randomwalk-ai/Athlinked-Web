@@ -27,7 +27,10 @@ export default function ProgressStepper({
         {steps.map((step, index) => (
           <React.Fragment key={`step-${index}`}>
             {/* Circle Container */}
-            <div className="flex items-center justify-center" style={{ width: index === steps.length - 1 ? 'auto' : 'auto' }}>
+            <div
+              className="flex items-center justify-center"
+              style={{ width: index === steps.length - 1 ? 'auto' : 'auto' }}
+            >
               <div
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
                   index <= currentStep ? 'bg-[#CB9729]' : 'bg-gray-200'
