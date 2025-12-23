@@ -8,7 +8,7 @@ export interface CommentData {
   id: string;
   post_id: string;
   username: string;
-  user_profile_url: string;
+  user_profile_url: string | null;
   comment: string;
   created_at: string;
   parent_comment_id?: string | null;
@@ -103,7 +103,7 @@ export default function CommentsModal({
       id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       post_id: post.id,
       username: currentUsername,
-      user_profile_url: currentUserProfileUrl,
+      user_profile_url: currentUserProfileUrl || null,
       comment: commentText.trim(),
       created_at: new Date().toISOString(),
       parent_comment_id: null,
@@ -163,7 +163,7 @@ export default function CommentsModal({
       id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       post_id: post.id,
       username: currentUsername,
-      user_profile_url: currentUserProfileUrl,
+      user_profile_url: currentUserProfileUrl || null,
       comment: replyText.trim(),
       created_at: new Date().toISOString(),
       parent_comment_id: parentCommentId,

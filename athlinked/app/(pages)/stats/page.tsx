@@ -8,6 +8,7 @@ interface UserData {
   full_name: string;
   primary_sport: string | null;
   email: string;
+  profile_url?: string | null;
 }
 
 export default function StatsPage() {
@@ -26,9 +27,9 @@ export default function StatsPage() {
       .slice(0, 2);
   };
   
-  // Construct profile URL
-  const getProfileUrl = (profileUrl?: string | null): string | null => {
-    if (!profileUrl || profileUrl.trim() === '') return null;
+  // Construct profile URL - return undefined if no profileUrl exists
+  const getProfileUrl = (profileUrl?: string | null): string | undefined => {
+    if (!profileUrl || profileUrl.trim() === '') return undefined;
     if (profileUrl.startsWith('http')) return profileUrl;
     if (profileUrl.startsWith('/') && !profileUrl.startsWith('/assets')) {
       return `http://localhost:3001${profileUrl}`;

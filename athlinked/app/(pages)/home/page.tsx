@@ -125,9 +125,9 @@ export default function Landing() {
     fetchPosts();
   };
 
-  // Construct profile URL - return null if no profileUrl exists (don't use default)
-  const getProfileUrl = (profileUrl?: string | null): string | null => {
-    if (!profileUrl || profileUrl.trim() === '') return null;
+  // Construct profile URL - return undefined if no profileUrl exists (don't use default)
+  const getProfileUrl = (profileUrl?: string | null): string | undefined => {
+    if (!profileUrl || profileUrl.trim() === '') return undefined;
     if (profileUrl.startsWith('http')) return profileUrl;
     if (profileUrl.startsWith('/') && !profileUrl.startsWith('/assets')) {
       return `http://localhost:3001${profileUrl}`;
