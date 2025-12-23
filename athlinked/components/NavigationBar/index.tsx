@@ -1,7 +1,8 @@
 'use client';
- 
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Search,
   Home,
@@ -23,16 +24,79 @@ interface NavigationBarProps {
   userProfileUrl?: string;
   userRole?: string;
 }
- 
+
+interface UserData {
+  full_name: string;
+  profile_url?: string;
+  user_type?: string;
+}
+
 export default function NavigationBar({
   activeItem = 'stats',
-  userName = 'User',
-  userProfileUrl = '/assets/Header/profiledummy.jpeg',
-  userRole = 'Athlete',
+  userName: propUserName,
+  userProfileUrl: propUserProfileUrl,
+  userRole: propUserRole,
 }: NavigationBarProps) {
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
- 
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch current user data if not provided as props
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUserData = async () => {
+      // Always fetch to ensure we have the latest user data
+      // Props will override if provided, but we fetch as fallback
+      try {
+        const userIdentifier = localStorage.getItem('userEmail');
+        if (!userIdentifier) {
+          if (isMounted) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        let response;
+        if (userIdentifier.startsWith('username:')) {
+          const username = userIdentifier.replace('username:', '');
+          response = await fetch(
+            `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
+          );
+        } else {
+          response = await fetch(
+            `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
+          );
+        }
+
+        if (!response.ok) {
+          if (isMounted) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success && data.user && isMounted) {
+          setUserData(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data in NavigationBar:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchUserData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleLogout = () => {
     // Clear user data from localStorage
     localStorage.removeItem('userEmail');
@@ -54,19 +118,53 @@ export default function NavigationBar({
   ];
  
   // Get display name (first name or provided name)
+  // Priority: prop > fetched user data > default
+  const userName = propUserName || userData?.full_name || 'User';
+  
+  // Only use profile_url if it actually exists (not null/undefined/empty)
+  const rawProfileUrl = propUserProfileUrl || (userData?.profile_url && typeof userData.profile_url === 'string' && userData.profile_url.trim() !== '' ? userData.profile_url : null);
+  
+  // Construct full URL if profile_url is a relative path (starts with /)
+  // But don't modify /assets paths (static assets)
+  // Don't use default - only show if profile_url exists
+  const userProfileUrl = rawProfileUrl && rawProfileUrl.trim() !== ''
+    ? (rawProfileUrl.startsWith('http') 
+        ? rawProfileUrl 
+        : rawProfileUrl.startsWith('/') && !rawProfileUrl.startsWith('/assets')
+          ? `http://localhost:3001${rawProfileUrl}`
+          : rawProfileUrl)
+    : null;
+    
+  const userRole = propUserRole || (userData?.user_type ? userData.user_type.charAt(0).toUpperCase() + userData.user_type.slice(1).toLowerCase() : 'Athlete');
   const displayName = userName?.split(' ')[0] || 'User';
- 
+  
+  // Get initials for placeholder
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <div className="w-72 bg-white flex flex-col border-r border-gray-200 rounded-lg">
       {/* Athlete Profile Section */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gray-300 overflow-hidden border border-gray-200">
-            <img
-              src={userProfileUrl}
-              alt={displayName}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gray-300 overflow-hidden border border-gray-200 flex items-center justify-center">
+            {userProfileUrl ? (
+              <img
+                src={userProfileUrl}
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-gray-600 font-semibold text-sm md:text-lg">
+                {getInitials(userName)}
+              </span>
+            )}
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-sm text-gray-500">{userRole}</span>
@@ -103,27 +201,51 @@ export default function NavigationBar({
               );
             }
  
+            // Determine the href for navigation
+            const getHref = () => {
+              switch (item.id) {
+                case 'home':
+                  return '/home';
+                case 'stats':
+                  return '/stats';
+                case 'clips':
+                  return '/clips';
+                case 'resource':
+                  return '/resources';
+                default:
+                  return '#';
+              }
+            };
+
+            const href = getHref();
+
             return (
               <li key={item.id}>
-                <a
-                  href={
-                    item.id === 'home'
-                      ? '/home'
-                      : item.id === 'stats'
-                        ? '/stats'
-                        : item.id === 'clips'
-                          ? '/clips'
-                          : '#'
-                  }
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-[#CB9729] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={2} />
-                  <span className="text-md font-medium">{item.label}</span>
-                </a>
+                {href !== '#' ? (
+                  <Link
+                    href={href}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-[#CB9729] text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon size={20} strokeWidth={2} />
+                    <span className="text-md font-medium">{item.label}</span>
+                  </Link>
+                ) : (
+                  <a
+                    href={href}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-[#CB9729] text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon size={20} strokeWidth={2} />
+                    <span className="text-md font-medium">{item.label}</span>
+                  </a>
+                )}
               </li>
             );
           })}

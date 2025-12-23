@@ -24,7 +24,7 @@ interface CommentsPanelProps {
 
 export default function CommentsPanel({
   post,
-  currentUserProfileUrl = '/assets/Header/profiledummy.jpeg',
+  currentUserProfileUrl,
   currentUsername = 'You',
   onClose,
   onCommentAdded,
@@ -37,6 +37,16 @@ export default function CommentsPanel({
   const [isLoading, setIsLoading] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const replyInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get initials for placeholder
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   // Load comments from API
   useEffect(() => {
@@ -269,15 +279,18 @@ export default function CommentsPanel({
                 <div key={comment.id}>
                   {/* Parent Comment */}
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
-                      <img
-                        src={comment.user_profile_url?.startsWith('http') ? comment.user_profile_url : (comment.user_profile_url || '/assets/Header/profiledummy.jpeg')}
-                        alt={comment.username}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/assets/Header/profiledummy.jpeg';
-                        }}
-                      />
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                      {comment.user_profile_url && comment.user_profile_url.trim() !== '' ? (
+                        <img
+                          src={comment.user_profile_url.startsWith('http') ? comment.user_profile_url : `http://localhost:3001${comment.user_profile_url}`}
+                          alt={comment.username}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-600 font-semibold text-xs">
+                          {getInitials(comment.username)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="bg-gray-50 rounded-lg p-3">
@@ -312,15 +325,18 @@ export default function CommentsPanel({
                     <div className="ml-11 mt-2 space-y-3 border-l-2 border-gray-200 pl-4">
                       {comment.replies.map(reply => (
                         <div key={reply.id} className="flex gap-3">
-                          <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
-                            <img
-                              src={reply.user_profile_url?.startsWith('http') ? reply.user_profile_url : (reply.user_profile_url || '/assets/Header/profiledummy.jpeg')}
-                              alt={reply.username}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/assets/Header/profiledummy.jpeg';
-                              }}
-                            />
+                          <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                            {reply.user_profile_url && reply.user_profile_url.trim() !== '' ? (
+                              <img
+                                src={reply.user_profile_url.startsWith('http') ? reply.user_profile_url : `http://localhost:3001${reply.user_profile_url}`}
+                                alt={reply.username}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-gray-600 font-semibold text-xs">
+                                {getInitials(reply.username)}
+                              </span>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="bg-gray-50 rounded-lg p-2">
@@ -339,12 +355,18 @@ export default function CommentsPanel({
                   {isReplying && (
                     <div className="ml-11 mt-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
-                          <img
-                            src={currentUserProfileUrl}
-                            alt={currentUsername}
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                          {currentUserProfileUrl ? (
+                            <img
+                              src={currentUserProfileUrl}
+                              alt={currentUsername}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-gray-600 font-semibold text-xs">
+                              {getInitials(currentUsername)}
+                            </span>
+                          )}
                         </div>
                         <input
                           ref={replyInputRef}
@@ -387,12 +409,18 @@ export default function CommentsPanel({
       {/* Add Comment Input */}
       <div className="border-t border-gray-200 p-4 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
-            <img
-              src={currentUserProfileUrl}
-              alt={currentUsername}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+            {currentUserProfileUrl ? (
+              <img
+                src={currentUserProfileUrl}
+                alt={currentUsername}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-gray-600 font-semibold text-xs">
+                {getInitials(currentUsername)}
+              </span>
+            )}
           </div>
           <input
             type="text"

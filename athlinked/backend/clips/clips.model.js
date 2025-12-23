@@ -60,6 +60,7 @@ async function getClipsFeed(page = 1, limit = 10) {
   const query = `
     SELECT 
       id,
+      user_id,
       video_url,
       description,
       like_count,
@@ -247,6 +248,35 @@ async function getCommentById(commentId) {
   return result.rows[0] || null;
 }
 
+/**
+ * Delete a clip (hard delete)
+ * @param {string} clipId - Clip ID
+ * @param {string} userId - User ID (for authorization)
+ * @returns {Promise<boolean>} True if clip was deleted, false otherwise
+ */
+async function deleteClip(clipId, userId) {
+  const dbClient = await pool.connect();
+  try {
+    await dbClient.query('BEGIN');
+
+    // Delete related records first
+    await dbClient.query('DELETE FROM clip_comments WHERE clip_id = $1', [clipId]);
+    
+    // Delete the clip itself
+    const deleteQuery = 'DELETE FROM clips WHERE id = $1 AND user_id = $2 RETURNING id';
+    const result = await dbClient.query(deleteQuery, [clipId, userId]);
+    
+    await dbClient.query('COMMIT');
+    return result.rows.length > 0;
+  } catch (error) {
+    await dbClient.query('ROLLBACK');
+    console.error('Error deleting clip:', error);
+    throw error;
+  } finally {
+    dbClient.release();
+  }
+}
+
 module.exports = {
   createClip,
   getClipsFeed,
@@ -256,4 +286,5 @@ module.exports = {
   getClipComments,
   getUserById,
   getCommentById,
+  deleteClip,
 };

@@ -110,8 +110,42 @@ async function createUser(userData) {
   }
 }
 
+/**
+ * Get all users excluding the current user
+ * @param {string} excludeUserId - User ID to exclude from results
+ * @param {number} limit - Maximum number of users to return (default: 10)
+ * @returns {Promise<Array>} Array of user data
+ */
+async function getAllUsers(excludeUserId = null, limit = 10) {
+  let query;
+  let values;
+
+  if (excludeUserId) {
+    query = `
+      SELECT id, full_name, username, email, user_type, profile_url, created_at
+      FROM users
+      WHERE id != $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `;
+    values = [excludeUserId, limit];
+  } else {
+    query = `
+      SELECT id, full_name, username, email, user_type, profile_url, created_at
+      FROM users
+      ORDER BY created_at DESC
+      LIMIT $1
+    `;
+    values = [limit];
+  }
+
+  const result = await pool.query(query, values);
+  return result.rows;
+}
+
 module.exports = {
   findByEmail,
   findByUsername,
   createUser,
+  getAllUsers,
 };

@@ -3,13 +3,22 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import NavigationBar from '@/components/NavigationBar';
+import RightSideBar from '@/components/RightSideBar';
 import HomeHerosection from '@/components/Home/Herosection';
 import Post, { type PostData } from '@/components/Post';
+
+interface CurrentUser {
+  id: string;
+  full_name: string;
+  profile_url?: string;
+  username?: string;
+}
 
 export default function Landing() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const fetchPosts = async () => {
     try {
@@ -40,7 +49,7 @@ export default function Landing() {
         const transformedPosts: PostData[] = data.posts.map((post: any) => ({
           id: post.id,
           username: post.username || 'User',
-          user_profile_url: post.user_profile_url || '/assets/Header/profiledummy.jpeg',
+          user_profile_url: (post.user_profile_url && post.user_profile_url.trim() !== '') ? post.user_profile_url : null,
           user_id: post.user_id,
           post_type: post.post_type,
           caption: post.caption,
@@ -100,6 +109,12 @@ export default function Landing() {
       const data = await response.json();
       if (data.success && data.user) {
         setCurrentUserId(data.user.id);
+        setCurrentUser({
+          id: data.user.id,
+          full_name: data.user.full_name || data.user.username || 'User',
+          profile_url: data.user.profile_url,
+          username: data.user.username,
+        });
       }
     } catch (error) {
       console.error('Error fetching current user:', error);
@@ -110,27 +125,44 @@ export default function Landing() {
     fetchPosts();
   };
 
+  // Construct profile URL - return null if no profileUrl exists (don't use default)
+  const getProfileUrl = (profileUrl?: string | null): string | null => {
+    if (!profileUrl || profileUrl.trim() === '') return null;
+    if (profileUrl.startsWith('http')) return profileUrl;
+    if (profileUrl.startsWith('/') && !profileUrl.startsWith('/assets')) {
+      return `http://localhost:3001${profileUrl}`;
+    }
+    return profileUrl;
+  };
+  
+  // Get initials for placeholder
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <div className="h-screen bg-[#D4D4D4] flex flex-col overflow-hidden">
       <Header
-        userName="Ashwin"
-        userProfileUrl="/assets/Header/profiledummy.jpeg"
+        userName={currentUser?.full_name}
+        userProfileUrl={getProfileUrl(currentUser?.profile_url)}
       />
 
       <main className="flex flex-1 w-full mt-5 overflow-hidden">
         <div className="hidden md:flex px-6 ">
-          <NavigationBar
-            activeItem="home"
-            userName="Ashwin"
-            userProfileUrl="/assets/Header/profiledummy.jpeg"
-          />
+          <NavigationBar activeItem="home" />
         </div>
 
         <div className="flex-1 flex flex-col px-4 gap-4 overflow-hidden min-w-0">
           <div className="flex-shrink-0">
             <HomeHerosection
-              userProfileUrl="/assets/Header/profiledummy.jpeg"
-              username="Rohit Sharma"
+              userProfileUrl={getProfileUrl(currentUser?.profile_url)}
+              username={currentUser?.full_name || currentUser?.username || 'User'}
               onPostCreated={handlePostCreated}
             />
           </div>
@@ -150,8 +182,8 @@ export default function Landing() {
                   <Post
                     key={post.id}
                     post={post}
-                    currentUserProfileUrl="/assets/Header/profiledummy.jpeg"
-                    currentUsername="Rohit Sharma"
+                    currentUserProfileUrl={getProfileUrl(currentUser?.profile_url)}
+                    currentUsername={currentUser?.full_name || currentUser?.username || 'User'}
                     currentUserId={currentUserId || undefined}
                     onCommentCountUpdate={fetchPosts}
                     onPostDeleted={fetchPosts}
@@ -162,14 +194,8 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="hidden lg:flex px-6">
-          <div className="w-72">
-            <NavigationBar
-              activeItem="home"
-              userName="Ashwin"
-              userProfileUrl="/assets/Header/profiledummy.jpeg"
-            />
-          </div>
+        <div className="hidden lg:flex">
+          <RightSideBar />
         </div>
       </main>
     </div>

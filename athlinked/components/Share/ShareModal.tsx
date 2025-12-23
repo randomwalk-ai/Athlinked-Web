@@ -7,7 +7,7 @@ import type { PostData } from '../Post';
 export interface UserData {
   id: string;
   name: string;
-  profile_url: string;
+  profile_url: string | null;
   isGroup?: boolean;
 }
 
@@ -57,35 +57,45 @@ export default function ShareModal({
       {
         id: '1',
         name: 'Yazhini',
-        profile_url: '/assets/Header/profiledummy.jpeg',
+        profile_url: null,
         isGroup: true,
       },
       {
         id: '2',
         name: 'Rahul Dravid',
-        profile_url: '/assets/Header/profiledummy.jpeg',
+        profile_url: null,
       },
       {
         id: '3',
         name: 'Gautham Gambhir',
-        profile_url: '/assets/Header/profiledummy.jpeg',
+        profile_url: null,
       },
       {
         id: '4',
         name: 'Virat Kohli',
-        profile_url: '/assets/Header/profiledummy.jpeg',
+        profile_url: null,
       },
       {
         id: '5',
         name: 'MS Dhoni',
-        profile_url: '/assets/Header/profiledummy.jpeg',
+        profile_url: null,
       },
       {
         id: '6',
         name: 'Rohit Sharma',
-        profile_url: '/assets/Header/profiledummy.jpeg',
+        profile_url: null,
       },
     ];
+  };
+  
+  // Get initials for placeholder
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const filteredUsers = users.filter(user =>
@@ -206,12 +216,18 @@ export default function ShareModal({
                       className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
                       onClick={() => toggleUserSelection(user.id)}
                     >
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
-                        <img
-                          src={user.profile_url}
-                          alt={user.name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                        {user.profile_url ? (
+                          <img
+                            src={user.profile_url}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-gray-600 font-semibold text-xs">
+                            {getInitials(user.name)}
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">{user.name}</p>

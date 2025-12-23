@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import NavigationBar from '@/components/NavigationBar';
 import RightSideBar from '@/components/RightSideBar';
-import Header from '@/components/Header';
 import ResourceCard from '@/components/Resources/ResourceCard';
 import ResourceModals from '@/components/Resources/ResourceModals';
 
@@ -18,150 +17,258 @@ interface Resource {
   type?: 'image' | 'video' | 'pdf' | 'article';
 }
 
+interface Article {
+  id: string;
+  title: string;
+  description?: string;
+  article_link: string;
+  user_id: string;
+}
+
+interface Video {
+  id: string;
+  title: string;
+  description?: string;
+  video_url: string;
+  video_duration?: number;
+  user_id: string;
+}
+
+interface Template {
+  id: string;
+  title: string;
+  description?: string;
+  file_url: string;
+  file_type?: string;
+  file_size?: number;
+  user_id: string;
+}
+
 export default function ManageResourcesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('guides');
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showUrlModal, setShowUrlModal] = useState(false);
   const [articleUrl, setArticleUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [resourceToDelete, setResourceToDelete] = useState<string | null>(null);
 
-  // Initial data with real images from Unsplash (free to use)
-  const initialGuidesData: Resource[] = [
-    {
-      id: '1',
-      title: 'Varsity Soccer League Finals',
-      image:
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&h=300&fit=crop',
-      link: 'https://example.com/article-1',
-      type: 'article',
-    },
-    {
-      id: '2',
-      title: 'Next-Gen Athlete Training',
-      image:
-        'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=500&h=300&fit=crop',
-      link: 'https://example.com/article-2',
-      type: 'article',
-    },
-    {
-      id: '3',
-      title: 'Holistic Wellness for Athletes',
-      image:
-        'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&h=300&fit=crop',
-      link: 'https://example.com/article-3',
-      type: 'article',
-    },
-    {
-      id: '4',
-      title: 'Mastering Mental Toughness',
-      image:
-        'https://images.unsplash.com/photo-1487956382158-bb926046304a?w=500&h=300&fit=crop',
-      link: 'https://example.com/article-4',
-      type: 'article',
-    },
-    {
-      id: '5',
-      title: 'Nutrition for Peak Performance',
-      image:
-        'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500&h=300&fit=crop',
-      link: 'https://example.com/article-5',
-      type: 'article',
-    },
-    {
-      id: '6',
-      title: 'Effective Recovery Techniques',
-      image:
-        'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=500&h=300&fit=crop',
-      link: 'https://example.com/article-6',
-      type: 'article',
-    },
-  ];
+  // Fetch current user ID
+  useEffect(() => {
+    const fetchCurrentUserId = async () => {
+      try {
+        const userIdentifier = localStorage.getItem('userEmail');
+        if (!userIdentifier) {
+          return;
+        }
 
-  const initialVideosData: Resource[] = [
-    {
-      id: '1',
-      title: 'Basketball Training Fundamentals',
-      image:
-        'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&h=300&fit=crop',
-      link: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      type: 'video',
-    },
-    {
-      id: '2',
-      title: 'Soccer Skills & Techniques',
-      image:
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&h=300&fit=crop',
-      link: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      type: 'video',
-    },
-    {
-      id: '3',
-      title: 'Strength & Conditioning Workout',
-      image:
-        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&h=300&fit=crop',
-      link: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      type: 'video',
-    },
-    {
-      id: '4',
-      title: 'Track & Field Sprint Training',
-      image:
-        'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=500&h=300&fit=crop',
-      link: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      type: 'video',
-    },
-  ];
+        let response;
+        if (userIdentifier.startsWith('username:')) {
+          const username = userIdentifier.replace('username:', '');
+          response = await fetch(
+            `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
+          );
+        } else {
+          response = await fetch(
+            `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
+          );
+        }
 
-  const initialTemplatesData: Resource[] = [
-    {
-      id: '1',
-      title: 'Training Schedule Template',
-      image:
-        'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=500&h=300&fit=crop',
-      link: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            setCurrentUserId(data.user.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching current user ID:', error);
+      }
+    };
+
+    fetchCurrentUserId();
+  }, []);
+
+  // Map database items to frontend resources
+  const mapArticleToResource = (article: Article): Resource => {
+    return {
+      id: article.id,
+      title: article.title || 'Untitled',
+      image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=500&h=300&fit=crop',
+      link: article.article_link,
+      type: 'article',
+    };
+  };
+
+  const mapVideoToResource = (video: Video): Resource => {
+    const videoUrl = video.video_url
+      ? (video.video_url.startsWith('http') ? video.video_url : `http://localhost:3001${video.video_url}`)
+      : undefined;
+    
+    return {
+      id: video.id,
+      title: video.title || 'Untitled',
+      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&h=300&fit=crop',
+      link: videoUrl,
+      type: 'video',
+    };
+  };
+
+  const mapTemplateToResource = (template: Template): Resource => {
+    const fileUrl = template.file_url
+      ? (template.file_url.startsWith('http') ? template.file_url : `http://localhost:3001${template.file_url}`)
+      : undefined;
+    
+    return {
+      id: template.id,
+      title: template.title || 'Untitled',
+      image: 'https://images.unsplash.com/photo-1568667256549-094345857637?w=500&h=300&fit=crop',
+      link: fileUrl,
       type: 'pdf',
-    },
-    {
-      id: '2',
-      title: 'Performance Tracking Sheet',
-      image:
-        'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=300&fit=crop',
-      link: 'https://www.africau.edu/images/default/sample.pdf',
-      type: 'pdf',
-    },
-  ];
+    };
+  };
 
-  // State for each tab's data
-  const [guidesData, setGuidesData] = useState<Resource[]>(initialGuidesData);
-  const [videosData, setVideosData] = useState<Resource[]>(initialVideosData);
-  const [templatesData, setTemplatesData] =
-    useState<Resource[]>(initialTemplatesData);
+  // Fetch resources from API
+  const fetchResources = async () => {
+    try {
+      setLoading(true);
+      let endpoint = '';
+      
+      if (activeTab === 'guides') {
+        endpoint = 'http://localhost:3001/api/articles';
+      } else if (activeTab === 'videos') {
+        endpoint = 'http://localhost:3001/api/videos';
+      } else {
+        endpoint = 'http://localhost:3001/api/templates';
+      }
 
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case 'guides':
-        return guidesData;
-      case 'videos':
-        return videosData;
-      case 'templates':
-        return templatesData;
-      default:
-        return guidesData;
+      const response = await fetch(endpoint);
+
+      if (!response.ok) {
+        console.error('Failed to fetch resources');
+        setResources([]);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        let mappedResources: Resource[] = [];
+        
+        if (activeTab === 'guides' && data.articles) {
+          mappedResources = data.articles.map(mapArticleToResource);
+        } else if (activeTab === 'videos' && data.videos) {
+          mappedResources = data.videos.map(mapVideoToResource);
+        } else if (activeTab === 'templates' && data.templates) {
+          mappedResources = data.templates.map(mapTemplateToResource);
+        }
+        
+        setResources(mappedResources);
+      } else {
+        setResources([]);
+      }
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+      setResources([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    switch (activeTab) {
-      case 'guides':
-        setGuidesData(guidesData.filter(item => item.id !== id));
-        break;
-      case 'videos':
-        setVideosData(videosData.filter(item => item.id !== id));
-        break;
-      case 'templates':
-        setTemplatesData(templatesData.filter(item => item.id !== id));
-        break;
+  // Fetch resources when tab changes or component mounts
+  useEffect(() => {
+    if (currentUserId) {
+      fetchResources();
     }
+  }, [activeTab, currentUserId]);
+
+  const handleDeleteClick = (id: string) => {
+    setResourceToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!resourceToDelete) {
+      setShowDeleteConfirm(false);
+      setResourceToDelete(null);
+      return;
+    }
+
+    try {
+      // Fetch user data first (same pattern as Post component)
+      const userIdentifier = localStorage.getItem('userEmail');
+      if (!userIdentifier) {
+        alert('User not logged in');
+        setShowDeleteConfirm(false);
+        setResourceToDelete(null);
+        return;
+      }
+
+      let userResponse;
+      if (userIdentifier.startsWith('username:')) {
+        const username = userIdentifier.replace('username:', '');
+        userResponse = await fetch(
+          `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
+        );
+      } else {
+        userResponse = await fetch(
+          `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
+        );
+      }
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userData = await userResponse.json();
+      if (!userData.success || !userData.user) {
+        throw new Error('User not found');
+      }
+
+      // Determine endpoint based on active tab
+      let endpoint = '';
+      if (activeTab === 'guides') {
+        endpoint = `http://localhost:3001/api/articles/${resourceToDelete}`;
+      } else if (activeTab === 'videos') {
+        endpoint = `http://localhost:3001/api/videos/${resourceToDelete}`;
+      } else {
+        endpoint = `http://localhost:3001/api/templates/${resourceToDelete}`;
+      }
+
+      // Send DELETE request with user_id in body (same pattern as Post component)
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userData.user.id,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh resources after deletion
+        await fetchResources();
+        setShowDeleteConfirm(false);
+        setResourceToDelete(null);
+      } else {
+        alert(result.message || 'Failed to delete resource');
+        setShowDeleteConfirm(false);
+        setResourceToDelete(null);
+      }
+    } catch (error) {
+      console.error('Error deleting resource:', error);
+      alert('Failed to delete resource. Please try again.');
+      setShowDeleteConfirm(false);
+      setResourceToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setResourceToDelete(null);
   };
 
   const scrapeArticleMetadata = async (url: string) => {
@@ -184,51 +291,71 @@ export default function ManageResourcesPage() {
         doc.querySelector('title')?.textContent ||
         'Untitled Article';
 
-      let image =
-        doc
-          .querySelector('meta[property="og:image"]')
-          ?.getAttribute('content') ||
-        doc
-          .querySelector('meta[name="twitter:image"]')
-          ?.getAttribute('content') ||
-        doc.querySelector('img')?.getAttribute('src') ||
-        'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=500&h=300&fit=crop';
-
-      if (image && !image.startsWith('http')) {
-        const urlObj = new URL(url);
-        image = urlObj.origin + (image.startsWith('/') ? '' : '/') + image;
-      }
-
-      return { title, image };
+      return { title };
     } catch (error) {
       console.error('Error scraping article:', error);
       return {
         title: 'Article',
-        image:
-          'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=500&h=300&fit=crop',
       };
     }
   };
 
   const handleAddArticle = async () => {
     if (!articleUrl.trim()) return;
+    if (!currentUserId) {
+      alert('You must be logged in to add resources');
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      const { title, image } = await scrapeArticleMetadata(articleUrl);
+      const { title } = await scrapeArticleMetadata(articleUrl);
 
-      const newArticle: Resource = {
-        id: Date.now().toString() + Math.random(),
-        title: title,
-        image: image,
-        link: articleUrl,
-        type: 'article',
-      };
+      const response = await fetch('http://localhost:3001/api/articles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: currentUserId,
+          title: title,
+          article_link: articleUrl,
+        }),
+      });
 
-      setGuidesData([...guidesData, newArticle]);
-      setShowUrlModal(false);
-      setArticleUrl('');
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('JSON parse error:', jsonError);
+          const text = await response.text();
+          console.error('Response text:', text);
+          throw new Error(`Failed to parse response: ${text.substring(0, 100)}`);
+        }
+      } else {
+        // If not JSON, read as text to see what we got
+        const text = await response.text();
+        console.error('Non-JSON response (status:', response.status, '):', text.substring(0, 200));
+        throw new Error(`Server returned non-JSON response (status: ${response.status}). Check backend logs.`);
+      }
+
+      if (response.ok) {
+        if (data.success) {
+          setShowUrlModal(false);
+          setArticleUrl('');
+          // Refresh resources
+          fetchResources();
+        } else {
+          alert(data.message || 'Failed to add article');
+        }
+      } else {
+        alert(data.message || 'Failed to add article');
+      }
     } catch (error) {
       console.error('Error adding article:', error);
       alert('Failed to add article. Please try again.');
@@ -240,6 +367,11 @@ export default function ManageResourcesPage() {
   const handleUpload = () => {
     if (activeTab === 'guides') {
       setShowUrlModal(true);
+      return;
+    }
+
+    if (!currentUserId) {
+      alert('You must be logged in to upload resources');
       return;
     }
 
@@ -257,56 +389,123 @@ export default function ManageResourcesPage() {
 
     fileInput.multiple = true;
 
-    fileInput.onchange = (e: Event) => {
+    fileInput.onchange = async (e: Event) => {
       const target = e.target as HTMLInputElement;
       const files = target.files;
 
       if (files) {
-        Array.from(files).forEach(file => {
-          if (file.type === 'application/pdf') {
-            const blobUrl = URL.createObjectURL(file);
-            const thumbnailUrl =
-              'https://images.unsplash.com/photo-1568667256549-094345857637?w=500&h=300&fit=crop';
+        for (const file of Array.from(files)) {
+          try {
+            setIsLoading(true);
 
-            const newResource: Resource = {
-              id: Date.now().toString() + Math.random(),
-              title: file.name.replace(/\.[^/.]+$/, ''),
-              image: thumbnailUrl,
-              link: blobUrl,
-              type: 'pdf',
-            };
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('user_id', currentUserId!);
+            formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
 
-            setTemplatesData(prev => [...prev, newResource]);
-          } else if (file.type.startsWith('video/')) {
-            const blobUrl = URL.createObjectURL(file);
+            if (activeTab === 'videos') {
+              // For videos, we need to get duration
+              const video = document.createElement('video');
+              video.preload = 'metadata';
+              video.src = URL.createObjectURL(file);
 
-            const video = document.createElement('video');
-            video.src = blobUrl;
-            video.currentTime = 1;
+              video.onloadedmetadata = async () => {
+                window.URL.revokeObjectURL(video.src);
+                const duration = Math.floor(video.duration);
 
-            video.onloadeddata = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              const ctx = canvas.getContext('2d');
+                formData.append('video_duration', duration.toString());
 
-              if (ctx) {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const thumbnailUrl = canvas.toDataURL('image/jpeg');
+                const response = await fetch('http://localhost:3001/api/videos', {
+                  method: 'POST',
+                  body: formData,
+                });
 
-                const newResource: Resource = {
-                  id: Date.now().toString() + Math.random(),
-                  title: file.name.replace(/\.[^/.]+$/, ''),
-                  image: thumbnailUrl,
-                  link: blobUrl,
-                  type: 'video',
-                };
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                  try {
+                    data = await response.json();
+                  } catch (jsonError) {
+                    console.error('JSON parse error:', jsonError);
+                    const text = await response.text();
+                    console.error('Response text:', text);
+                    throw new Error(`Failed to parse response: ${text.substring(0, 100)}`);
+                  }
+                } else {
+                  const text = await response.text();
+                  console.error('Non-JSON response (status:', response.status, '):', text.substring(0, 200));
+                  throw new Error(`Server returned non-JSON response (status: ${response.status}). Check backend logs.`);
+                }
 
-                setVideosData(prev => [...prev, newResource]);
+                if (response.ok) {
+                  if (data.success) {
+                    // Refresh resources after successful upload
+                    await fetchResources();
+                    alert('Video uploaded successfully!');
+                  } else {
+                    alert(data.message || 'Failed to upload video');
+                  }
+                } else {
+                  alert(data.message || 'Failed to upload video');
+                }
+                setIsLoading(false);
+              };
+
+              video.onerror = () => {
+                window.URL.revokeObjectURL(video.src);
+                alert('Error loading video file');
+                setIsLoading(false);
+              };
+            } else {
+              // For templates (PDFs)
+              formData.append('file_type', file.type);
+              formData.append('file_size', file.size.toString());
+
+              const response = await fetch('http://localhost:3001/api/templates', {
+                method: 'POST',
+                body: formData,
+              });
+
+              // Check if response is JSON
+              const contentType = response.headers.get('content-type');
+              let data;
+              
+              if (contentType && contentType.includes('application/json')) {
+                try {
+                  data = await response.json();
+                } catch (jsonError) {
+                  console.error('JSON parse error:', jsonError);
+                  const text = await response.text();
+                  console.error('Response text:', text);
+                  throw new Error(`Failed to parse response: ${text.substring(0, 100)}`);
+                }
+              } else {
+                const text = await response.text();
+                console.error('Non-JSON response (status:', response.status, '):', text.substring(0, 200));
+                throw new Error(`Server returned non-JSON response (status: ${response.status}). Check backend logs.`);
               }
-            };
+
+              if (response.ok) {
+                if (data.success) {
+                  // Refresh resources after successful upload
+                  await fetchResources();
+                  alert('Template uploaded successfully!');
+                } else {
+                  alert(data.message || 'Failed to upload template');
+                }
+              } else {
+                alert(data.message || 'Failed to upload template');
+              }
+              setIsLoading(false);
+            }
+          } catch (error) {
+            console.error('Error uploading file:', error);
+            alert('Failed to upload file. Please try again.');
+            setIsLoading(false);
           }
-        });
+        }
       }
     };
 
@@ -333,12 +532,11 @@ export default function ManageResourcesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-200">
-      <Header userName="Athlete Name" />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Navigation Bar */}
+      <NavigationBar activeItem="resource" />
 
       <div className="flex p-5 flex-1">
-        <NavigationBar activeItem="resource" userName="Athlete Name" />
-
         <div className="flex-1 bg-white mt-0 ml-5 mr-5 mb-5 rounded-xl flex flex-col">
           {/* Tabs Navigation */}
           <div className="border-b border-gray-200">
@@ -390,50 +588,57 @@ export default function ManageResourcesPage() {
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto p-6">
-              {/* Header - Only show for Guides & Articles tab */}
-              {activeTab === 'guides' && (
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-semibold text-gray-900">
-                    Manage Resources
-                  </h1>
-                  <button
-                    onClick={handleUpload}
-                    className="flex items-center gap-2 bg-[#CB9729] text-white px-5 py-2.5 rounded-lg hover:bg-[#B88624] transition-colors shadow-sm"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span className="font-medium">Upload</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Resource Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getCurrentData().map(resource => (
-                  <ResourceCard
-                    key={resource.id}
-                    id={resource.id}
-                    title={resource.title}
-                    image={resource.image}
-                    link={resource.link}
-                    type={resource.type}
-                    onDelete={handleDelete}
-                    onClick={() => handleCardClick(resource)}
-                  />
-                ))}
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  Manage Resources
+                </h1>
+                <button
+                  onClick={handleUpload}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 bg-[#CB9729] text-white px-5 py-2.5 rounded-lg hover:bg-[#B88624] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span className="font-medium">Upload</span>
+                </button>
               </div>
 
-              {/* Empty State */}
-              {getCurrentData().length === 0 && (
+              {/* Resource Grid */}
+              {loading ? (
                 <div className="text-center py-16">
-                  <p className="text-gray-500 text-base mb-2">
-                    No resources available
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    {activeTab === 'guides'
-                      ? 'Click Add Article URL to add new content'
-                      : 'Click Upload to add new content'}
-                  </p>
+                  <p className="text-gray-500 text-base">Loading resources...</p>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {resources.map(resource => (
+                      <ResourceCard
+                        key={resource.id}
+                        id={resource.id}
+                        title={resource.title}
+                        image={resource.image}
+                        link={resource.link}
+                        type={resource.type}
+                        onDelete={handleDeleteClick}
+                        onClick={() => handleCardClick(resource)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Empty State */}
+                  {resources.length === 0 && (
+                    <div className="text-center py-16">
+                      <p className="text-gray-500 text-base mb-2">
+                        No resources available
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        {activeTab === 'guides'
+                          ? 'Click Upload to add article URL'
+                          : 'Click Upload to add new content'}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -452,6 +657,46 @@ export default function ManageResourcesPage() {
         selectedVideo={selectedVideo}
         onCloseVideoModal={closeVideoModal}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50"
+            onClick={handleDeleteCancel}
+          ></div>
+
+          {/* Modal */}
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div
+              className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                Confirm Delete
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this resource? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

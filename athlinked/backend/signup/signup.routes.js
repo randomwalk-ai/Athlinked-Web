@@ -32,4 +32,11 @@ router.get('/user-by-username/:username', signupController.getUserByUsername);
  */
 router.post('/parent-complete', signupController.parentComplete);
 
+/**
+ * GET /api/signup/users
+ * Get all users (for "People you may know")
+ * Query params: excludeUserId (optional), limit (optional, default: 10)
+ */
+router.get('/users', signupController.getAllUsers);
+
 module.exports = router;

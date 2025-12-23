@@ -29,4 +29,11 @@ router.post('/:clipId/comments', clipsController.addComment);
  */
 router.get('/:clipId/comments', clipsController.getClipComments);
 
+/**
+ * DELETE /api/clips/:clipId
+ * Delete a clip
+ * Auth required
+ */
+router.delete('/:clipId', clipsController.deleteClip);
+
 module.exports = router;

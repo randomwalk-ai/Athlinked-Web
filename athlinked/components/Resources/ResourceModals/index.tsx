@@ -56,7 +56,7 @@ export default function ResourceModals({
                 value={articleUrl}
                 onChange={e => onUrlChange(e.target.value)}
                 placeholder="Enter URL"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CB9729] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#CB9729] focus:border-transparent outline-none text-gray-900 placeholder:text-gray-400"
                 disabled={isLoading}
               />
             </div>

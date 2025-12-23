@@ -200,10 +200,51 @@ async function getClipComments(req, res) {
   }
 }
 
+/**
+ * Controller to handle delete clip request
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ */
+async function deleteClip(req, res) {
+  try {
+    const clipId = req.params.clipId;
+    const userId = req.body.user_id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required',
+      });
+    }
+
+    const result = await clipsService.deleteClipService(clipId, userId);
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Delete clip controller error:', error);
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    if (error.message.includes('Unauthorized')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+    });
+  }
+}
+
 module.exports = {
   createClip,
   getClipsFeed,
   addComment,
   replyToComment,
   getClipComments,
+  deleteClip,
 };

@@ -14,6 +14,8 @@ import {
   ChevronUp,
   ChevronDown,
   X,
+  Trash2,
+  MoreVertical,
 } from 'lucide-react';
 
 interface UserData {
@@ -24,7 +26,7 @@ interface UserData {
 interface Comment {
   id: string;
   author: string;
-  authorAvatar: string;
+  authorAvatar: string | null;
   text: string;
   hasReplies?: boolean;
 }
@@ -33,17 +35,19 @@ interface Reel {
   id: string;
   videoUrl: string;
   author: string;
-  authorAvatar: string;
+  authorAvatar: string | null;
   caption: string;
   timestamp: string;
   likes: number;
   shares: number;
   comments: Comment[];
   commentCount: number;
+  user_id?: string;
 }
 
 export default function ClipsPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentReelIndex, setCurrentReelIndex] = useState(0);
   const [mutedReels, setMutedReels] = useState<{ [key: string]: boolean }>({});
@@ -55,6 +59,8 @@ export default function ClipsPage() {
   const [commentTexts, setCommentTexts] = useState<{ [key: string]: string }>(
     {}
   );
+  const [showDeleteMenu, setShowDeleteMenu] = useState<{ [key: string]: boolean }>({});
+  const [isDeleting, setIsDeleting] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
 
@@ -130,6 +136,7 @@ export default function ClipsPage() {
 
         if (data.success && data.user) {
           setUserData(data.user);
+          setCurrentUserId(data.user.id);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -208,7 +215,7 @@ export default function ClipsPage() {
             id: comment.id,
             author:
               comment.username || userData?.full_name?.split(' ')[0] || 'User',
-            authorAvatar: 'https://via.placeholder.com/40',
+            authorAvatar: (comment.user_profile_url && comment.user_profile_url.trim() !== '') ? comment.user_profile_url : null,
             text: comment.comment,
             hasReplies: comment.replies && comment.replies.length > 0,
           })
@@ -332,14 +339,14 @@ export default function ClipsPage() {
             ? clip.video_url
             : `http://localhost:3001${clip.video_url}`,
           author: clip.username || fallbackName,
-          authorAvatar:
-            clip.user_profile_url || 'https://via.placeholder.com/40',
+          authorAvatar: (clip.user_profile_url && clip.user_profile_url.trim() !== '') ? clip.user_profile_url : null,
           caption: clip.description || '',
           timestamp: formatTimestamp(clip.created_at),
           likes: clip.like_count || 0,
           shares: 0,
           commentCount: clip.comment_count || 0,
           comments: [],
+          user_id: clip.user_id,
         }));
 
         setReels(transformedClips);
@@ -435,6 +442,113 @@ export default function ClipsPage() {
     }
   };
 
+  const handleDelete = async (clipId: string) => {
+    if (!currentUserId) {
+      return;
+    }
+
+    const reel = reels.find(r => r.id === clipId);
+    if (!reel || reel.user_id !== currentUserId) {
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this clip? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const userIdentifier = localStorage.getItem('userEmail');
+      if (!userIdentifier) {
+        alert('User not logged in');
+        return;
+      }
+
+      let userResponse;
+      if (userIdentifier.startsWith('username:')) {
+        const username = userIdentifier.replace('username:', '');
+        userResponse = await fetch(
+          `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
+        );
+      } else {
+        userResponse = await fetch(
+          `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
+        );
+      }
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      // Check if user response is JSON
+      const userContentType = userResponse.headers.get('content-type');
+      let userDataResponse;
+      
+      if (userContentType && userContentType.includes('application/json')) {
+        try {
+          userDataResponse = await userResponse.json();
+        } catch (jsonError) {
+          console.error('JSON parse error for user data:', jsonError);
+          const text = await userResponse.text();
+          console.error('User response text:', text);
+          throw new Error('Failed to parse user data response');
+        }
+      } else {
+        const text = await userResponse.text();
+        console.error('Non-JSON user response (status:', userResponse.status, '):', text.substring(0, 200));
+        throw new Error('Server returned non-JSON response for user data');
+      }
+
+      if (!userDataResponse.success || !userDataResponse.user) {
+        throw new Error('User not found');
+      }
+
+      const response = await fetch(`http://localhost:3001/api/clips/${clipId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userDataResponse.user.id,
+        }),
+      });
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.error('JSON parse error:', jsonError);
+          const text = await response.text();
+          console.error('Response text:', text);
+          throw new Error(`Failed to parse response: ${text.substring(0, 100)}`);
+        }
+      } else {
+        // If not JSON, read as text to see what we got
+        const text = await response.text();
+        console.error('Non-JSON response (status:', response.status, '):', text.substring(0, 200));
+        throw new Error(`Server returned non-JSON response (status: ${response.status}). Check backend logs.`);
+      }
+
+      if (result.success) {
+        // Refresh clips list
+        await fetchClips();
+        setShowDeleteMenu({});
+      } else {
+        alert(result.message || 'Failed to delete clip');
+      }
+    } catch (error) {
+      console.error('Error deleting clip:', error);
+      alert('Failed to delete clip. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteMenu({});
+    }
+  };
+
   useEffect(() => {
     if (!loading && userData) {
       fetchClips();
@@ -458,12 +572,19 @@ export default function ClipsPage() {
         <div className="flex items-center">
           <img src="/Frame 171.png" alt="ATHLINKED" className="h-8 w-auto" />
         </div>
-        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden">
-          <img
-            src="https://via.placeholder.com/40"
-            alt="Profile"
-            className="w-full h-full object-cover"
-          />
+        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+          {userData?.full_name ? (
+            <span className="text-gray-600 font-semibold text-xs">
+              {userData.full_name
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2)}
+            </span>
+          ) : (
+            <span className="text-gray-600 font-semibold text-xs">U</span>
+          )}
         </div>
       </header>
 
@@ -520,15 +641,60 @@ export default function ClipsPage() {
                         Your browser does not support the video tag.
                       </video>
 
+                      {/* Top Right - Delete Button (only for clips owned by current user) */}
+                      {reel.user_id === currentUserId && (
+                        <div className="absolute top-4 right-4 z-20">
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowDeleteMenu(prev => ({
+                                ...prev,
+                                [reel.id]: !prev[reel.id],
+                              }))}
+                              className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors backdrop-blur-sm"
+                            >
+                              <MoreVertical size={20} />
+                            </button>
+                            {showDeleteMenu[reel.id] && (
+                              <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden z-30 min-w-[150px]">
+                                <button
+                                  onClick={() => {
+                                    setShowDeleteMenu({});
+                                    handleDelete(reel.id);
+                                  }}
+                                  disabled={isDeleting}
+                                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                                >
+                                  <Trash2 size={18} />
+                                  <span className="text-sm font-medium">
+                                    {isDeleting ? 'Deleting...' : 'Delete Clip'}
+                                  </span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Bottom Section - Profile, Username, and Description */}
                       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 border-2 border-white">
-                            <img
-                              src={reel.authorAvatar}
-                              alt={reel.author}
-                              className="w-full h-full object-cover"
-                            />
+                          <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 border-2 border-white flex items-center justify-center">
+                            {reel.authorAvatar ? (
+                              <img
+                                src={reel.authorAvatar}
+                                alt={reel.author}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-white font-semibold text-xs">
+                                {reel.author
+                                  .split(' ')
+                                  .map(word => word[0])
+                                  .join('')
+                                  .toUpperCase()
+                                  .slice(0, 2)}
+                              </span>
+                            )}
                           </div>
                           <div className="flex-1">
                             <div className="mb-1">
@@ -645,12 +811,23 @@ export default function ClipsPage() {
                   <>
                     {selectedReel.comments.map(comment => (
                       <div key={comment.id} className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
-                          <img
-                            src={comment.authorAvatar}
-                            alt={comment.author}
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          {comment.authorAvatar ? (
+                            <img
+                              src={comment.authorAvatar}
+                              alt={comment.author}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-gray-600 font-semibold text-xs">
+                              {comment.author
+                                .split(' ')
+                                .map(word => word[0])
+                                .join('')
+                                .toUpperCase()
+                                .slice(0, 2)}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1">
                           <div className="mb-1">
@@ -696,12 +873,19 @@ export default function ClipsPage() {
               {/* Comment Input */}
               <div className="p-4 border-t border-gray-200 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
-                    <img
-                      src="https://via.placeholder.com/32"
-                      alt="Your profile"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {userData?.full_name ? (
+                      <span className="text-gray-600 font-semibold text-xs">
+                        {userData.full_name
+                          .split(' ')
+                          .map(word => word[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-600 font-semibold text-xs">U</span>
+                    )}
                   </div>
                   <input
                     type="text"

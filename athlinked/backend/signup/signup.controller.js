@@ -229,10 +229,33 @@ async function parentComplete(req, res) {
   }
 }
 
+/**
+ * Controller to get all users (for "People you may know")
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ */
+async function getAllUsers(req, res) {
+  try {
+    const excludeUserId = req.query.excludeUserId || null;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await signupService.getAllUsersService(excludeUserId, limit);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Get all users error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+    });
+  }
+}
+
 module.exports = {
   startSignup,
   verifyOtp,
   getUserByEmail,
   getUserByUsername,
   parentComplete,
+  getAllUsers,
 };

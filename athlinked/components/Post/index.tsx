@@ -46,13 +46,23 @@ interface PostProps {
 
 export default function Post({
   post,
-  userProfileUrl = '/assets/Header/profiledummy.jpeg',
-  currentUserProfileUrl = '/assets/Header/profiledummy.jpeg',
+  userProfileUrl,
+  currentUserProfileUrl,
   currentUsername = 'You',
   currentUserId,
   onCommentCountUpdate,
   onPostDeleted,
 }: PostProps) {
+  
+  // Get initials for placeholder
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.like_count);
   const [commentCount, setCommentCount] = useState(post.comment_count);
@@ -226,12 +236,18 @@ export default function Post({
     <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-gray-200 mb-4">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
-          <img
-            src={post.user_profile_url || userProfileUrl}
-            alt={post.username}
-            className="w-full h-full object-cover"
-          />
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+          {post.user_profile_url && post.user_profile_url.trim() !== '' ? (
+            <img
+              src={post.user_profile_url}
+              alt={post.username}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-gray-600 font-semibold text-xs">
+              {getInitials(post.username)}
+            </span>
+          )}
         </div>
         <div className="flex-1">
           <p className="text-sm text-gray-500 font-medium">Athlete</p>

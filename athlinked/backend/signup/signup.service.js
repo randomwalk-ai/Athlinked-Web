@@ -243,8 +243,35 @@ async function parentCompleteService(username, email, password) {
   }
 }
 
+/**
+ * Get all users service
+ * @param {string} excludeUserId - User ID to exclude from results
+ * @param {number} limit - Maximum number of users to return
+ * @returns {Promise<object>} Service result with users array
+ */
+async function getAllUsersService(excludeUserId = null, limit = 10) {
+  try {
+    const users = await signupModel.getAllUsers(excludeUserId, limit);
+    
+    // Remove password from all users
+    const sanitizedUsers = users.map(user => {
+      const { password, ...userData } = user;
+      return userData;
+    });
+
+    return {
+      success: true,
+      users: sanitizedUsers,
+    };
+  } catch (error) {
+    console.error('Get all users service error:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   startSignupService,
   verifyOtpService,
   parentCompleteService,
+  getAllUsersService,
 };

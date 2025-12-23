@@ -1,6 +1,6 @@
-import Herosection from '@/components/Homescreen/Herosection';
-import Hersosection1 from '@/components/Homescreen/Herosection1';
-import Herosection2 from '@/components/Homescreen/Herosection2';
+import Herosection from '@/components/Landingscreen/Herosection';
+import Hersosection1 from '@/components/Landingscreen/Herosection1';
+import Herosection2 from '@/components/Landingscreen/Herosection2';
 
 export default function Landing() {
   return (

@@ -212,10 +212,43 @@ async function getClipCommentsService(clipId) {
   }
 }
 
+/**
+ * Delete a clip (hard delete)
+ * @param {string} clipId - Clip ID
+ * @param {string} userId - User ID (for authorization)
+ * @returns {Promise<object>} Service result
+ */
+async function deleteClipService(clipId, userId) {
+  try {
+    const clip = await clipsModel.getClipById(clipId);
+    if (!clip) {
+      throw new Error('Clip not found');
+    }
+
+    if (clip.user_id !== userId) {
+      throw new Error('Unauthorized: You can only delete your own clips');
+    }
+
+    const deleted = await clipsModel.deleteClip(clipId, userId);
+    if (!deleted) {
+      throw new Error('Failed to delete clip');
+    }
+
+    return {
+      success: true,
+      message: 'Clip deleted successfully',
+    };
+  } catch (error) {
+    console.error('Delete clip service error:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   createClipService,
   getClipsFeedService,
   addCommentService,
   replyToCommentService,
   getClipCommentsService,
+  deleteClipService,
 };

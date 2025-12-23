@@ -14,6 +14,27 @@ export default function StatsPage() {
   const [activeSport, setActiveSport] = useState('football');
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Get initials for placeholder
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+  
+  // Construct profile URL
+  const getProfileUrl = (profileUrl?: string | null): string | null => {
+    if (!profileUrl || profileUrl.trim() === '') return null;
+    if (profileUrl.startsWith('http')) return profileUrl;
+    if (profileUrl.startsWith('/') && !profileUrl.startsWith('/assets')) {
+      return `http://localhost:3001${profileUrl}`;
+    }
+    return profileUrl;
+  };
 
   // Fetch user data on mount
   useEffect(() => {
@@ -132,12 +153,18 @@ export default function StatsPage() {
         <div className="flex items-center">
           <img src="/Frame 171.png" alt="ATHLINKED" className="h-8 w-auto" />
         </div>
-        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden">
-          <img
-            src="https://via.placeholder.com/40"
-            alt="Profile"
-            className="w-full h-full object-cover"
-          />
+        <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+          {getProfileUrl(userData?.profile_url) ? (
+            <img
+              src={getProfileUrl(userData?.profile_url) || ''}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-gray-600 font-semibold text-xs">
+              {getInitials(userData?.full_name)}
+            </span>
+          )}
         </div>
       </header>
 
@@ -156,12 +183,18 @@ export default function StatsPage() {
             {/* Athlete Profile Card */}
             <div className="bg-[#CB9729] rounded-lg p-6 mb-6 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-6">
-                <div className="w-24 h-24 rounded-full bg-white overflow-hidden border-2 border-white shadow-md">
-                  <img
-                    src="https://via.placeholder.com/96"
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-24 h-24 rounded-full bg-white overflow-hidden border-2 border-white shadow-md flex items-center justify-center">
+                  {getProfileUrl(userData?.profile_url) ? (
+                    <img
+                      src={getProfileUrl(userData?.profile_url) || ''}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-600 font-semibold text-lg">
+                      {getInitials(userData?.full_name || 'User')}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-1">

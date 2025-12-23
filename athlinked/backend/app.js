@@ -8,6 +8,9 @@ const clipsRoutes = require('./clips/clips.routes');
 const commentsRoutes = require('./comments/comments.routes');
 const forgotPasswordRoutes = require('./forgot-password/forgot-password.routes');
 const postsRoutes = require('./posts/posts.routes');
+const articlesRoutes = require('./articles/articles.routes');
+const videosRoutes = require('./videos/videos.routes');
+const templatesRoutes = require('./templates/templates.routes');
 
 const app = express();
 
@@ -27,6 +30,9 @@ app.use('/api/clips', clipsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/forgot-password', forgotPasswordRoutes);
 app.use('/api/posts', postsRoutes);
+app.use('/api/articles', articlesRoutes);
+app.use('/api/videos', videosRoutes);
+app.use('/api/templates', templatesRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

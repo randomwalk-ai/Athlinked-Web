@@ -22,10 +22,20 @@ type HomeHerosectionProps = {
 type PostType = 'photo' | 'video' | 'article' | 'event';
 
 export default function HomeHerosection({
-  userProfileUrl = '/assets/Header/profiledummy.jpeg',
-  username = 'Rohit Sharma',
+  userProfileUrl,
+  username = 'User',
   onPostCreated,
 }: HomeHerosectionProps) {
+  
+  // Get initials for placeholder
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
   const [showUpload, setShowUpload] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showArticleEvent, setShowArticleEvent] = useState(false);
@@ -223,12 +233,18 @@ export default function HomeHerosection({
     <div className="w-full">
       <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-5">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden bg-gray-200 border border-gray-200">
-            <img
-              src={userProfileUrl}
-              alt="User profile"
-              className="w-full h-full object-cover"
-            />
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex items-center justify-center">
+            {userProfileUrl && userProfileUrl.trim() !== '' ? (
+              <img
+                src={userProfileUrl}
+                alt="User profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-gray-600 font-semibold text-sm md:text-base">
+                {getInitials(username)}
+              </span>
+            )}
           </div>
 
           <div className="flex-1">
