@@ -31,7 +31,6 @@ export default function FileUploadModal({
     ) {
       setSelectedFile(file);
 
-      // Create preview URL
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     } else {
@@ -204,7 +203,7 @@ export default function FileUploadModal({
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Enter description for your clip..."
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none text-sm h-96"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none text-sm h-96 text-gray-900"
                   disabled={isUploading}
                 />
               </div>
@@ -216,7 +215,7 @@ export default function FileUploadModal({
             <button
               onClick={handleClose}
               disabled={isUploading}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm text-black disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

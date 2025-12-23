@@ -19,11 +19,11 @@ export default function StatsPage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get user email from localStorage (set after signup)
-        const userEmail = localStorage.getItem('userEmail');
+        // Get user identifier from localStorage (set after signup)
+        const userIdentifier = localStorage.getItem('userEmail');
 
-        if (!userEmail) {
-          console.error('No user email found');
+        if (!userIdentifier) {
+          console.error('No user identifier found');
           setLoading(false);
           return;
         }
