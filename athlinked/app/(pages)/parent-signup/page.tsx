@@ -1,72 +1,22 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import SignupHero from '@/components/Signup/SignupHero';
 import { Eye, EyeOff } from 'lucide-react';
 
-function ParentSignupContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const username = searchParams.get('username');
-  const email = searchParams.get('email');
-
+export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<any>(null);
-
-  useEffect(() => {
-    if (!username && !email) {
-      setError('Invalid signup link. Username or email parameter is missing.');
-      setLoading(false);
-      return;
-    }
-
-    const fetchUserData = async () => {
-      try {
-        let response;
-        if (username) {
-          response = await fetch(
-            `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
-          );
-        } else if (email) {
-          response = await fetch(
-            `http://localhost:3001/api/signup/user/${encodeURIComponent(email)}`
-          );
-        }
-
-        if (!response) {
-          setError('Failed to fetch user data');
-          setLoading(false);
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.user) {
-          setUserData(data.user);
-        } else {
-          setError(data.message || 'User not found');
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        setError('Failed to load user information');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [username, email]);
 
   const handleSubmit = async () => {
+    // Clear previous errors
     setError('');
 
+    // Validate passwords
     if (!password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
@@ -85,30 +35,24 @@ function ParentSignupContent() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        'http://localhost:3001/api/signup/parent-complete',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: username || null,
-            email: email || null,
-            password: password,
-          }),
-        }
-      );
+      // Your API call here
+      const response = await fetch('YOUR_API_ENDPOINT', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: password,
+        }),
+      });
 
       const data = await response.json();
 
       if (data.success) {
-        if (data.user?.email) {
-          localStorage.setItem('userEmail', data.user.email);
-        }
-        router.push('/stats');
+        // Handle success - redirect or show success message
+        console.log('Password set successfully');
       } else {
-        setError(data.message || 'Failed to complete signup');
+        setError(data.message || 'Failed to set password');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -117,14 +61,6 @@ function ParentSignupContent() {
       setIsSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -145,16 +81,10 @@ function ParentSignupContent() {
 
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            Complete Signup
+            Set Your Password
           </h1>
-          {userData && (
-            <p className="text-sm sm:text-base text-gray-600 mb-4">
-              Completing signup for:{' '}
-              <strong>{userData.parent_name || 'Parent'}</strong>
-            </p>
-          )}
           <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
-            Create a strong password to secure the account
+            Create a strong password to secure your account
           </p>
 
           {/* Form */}
@@ -169,7 +99,7 @@ function ParentSignupContent() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900"
+                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                   placeholder="Enter your password"
                 />
                 <button
@@ -196,7 +126,7 @@ function ParentSignupContent() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-900"
+                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                   placeholder="Confirm your password"
                 />
                 <button
@@ -240,19 +170,5 @@ function ParentSignupContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function ParentSignupPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-          <p className="text-gray-700">Loading...</p>
-        </div>
-      }
-    >
-      <ParentSignupContent />
-    </Suspense>
   );
 }

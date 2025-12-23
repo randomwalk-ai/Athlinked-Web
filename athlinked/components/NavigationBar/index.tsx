@@ -116,7 +116,9 @@ export default function NavigationBar({
                           : '#'
                   }
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive ? 'bg-[#CB9729] text-white' : 'text-gray-700 hover:bg-gray-100'
+                    isActive
+                      ? 'bg-[#CB9729] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <Icon size={20} strokeWidth={2} />

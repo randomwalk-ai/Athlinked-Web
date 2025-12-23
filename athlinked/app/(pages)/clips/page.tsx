@@ -114,18 +114,9 @@ export default function ClipsPage() {
           return;
         }
 
-        let response;
-        if (userIdentifier.startsWith('username:')) {
-          const username = userIdentifier.replace('username:', '');
-          response = await fetch(
-            `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
-          );
-        } else {
-          response = await fetch(
-            `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
-          );
-        }
-
+        const response = await fetch(
+          `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/user/${encodeURIComponent(userEmail)}`
+        );
         const data = await response.json();
 
         if (data.success && data.user) {
@@ -190,7 +181,7 @@ export default function ClipsPage() {
   const fetchComments = async (clipId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/clips/${clipId}/comments`
+        `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/clips/${clipId}/comments`
       );
 
       const contentType = response.headers.get('content-type');
@@ -253,17 +244,10 @@ export default function ClipsPage() {
         return;
       }
 
-      let userResponse;
-      if (userIdentifier.startsWith('username:')) {
-        const username = userIdentifier.replace('username:', '');
-        userResponse = await fetch(
-          `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
-        );
-      } else {
-        userResponse = await fetch(
-          `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
-        );
-      }
+      // Get user data to get user_id
+      const userResponse = await fetch(
+        `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/user/${encodeURIComponent(userEmail)}`
+      );
       const userDataResponse = await userResponse.json();
 
       if (!userDataResponse.success || !userDataResponse.user) {
@@ -271,7 +255,7 @@ export default function ClipsPage() {
       }
 
       const response = await fetch(
-        `http://localhost:3001/api/clips/${reelId}/comments`,
+        `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/clips/${reelId}/comments`,
         {
           method: 'POST',
           headers: {
@@ -309,7 +293,7 @@ export default function ClipsPage() {
   const fetchClips = async () => {
     try {
       const response = await fetch(
-        'http://localhost:3001/api/clips?page=1&limit=50'
+        'https://roxie-unpesterous-clerkly.ngrok-free.dev/api/clips?page=1&limit=50'
       );
 
       const contentType = response.headers.get('content-type');
@@ -329,7 +313,7 @@ export default function ClipsPage() {
           id: clip.id,
           videoUrl: clip.video_url?.startsWith('http')
             ? clip.video_url
-            : `http://localhost:3001${clip.video_url}`,
+            : `https://roxie-unpesterous-clerkly.ngrok-free.dev${clip.video_url}`,
           author: clip.username || fallbackName,
           authorAvatar:
             clip.user_profile_url || 'https://via.placeholder.com/40',
@@ -374,17 +358,10 @@ export default function ClipsPage() {
         throw new Error('User not logged in');
       }
 
-      let userResponse;
-      if (userIdentifier.startsWith('username:')) {
-        const username = userIdentifier.replace('username:', '');
-        userResponse = await fetch(
-          `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
-        );
-      } else {
-        userResponse = await fetch(
-          `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
-        );
-      }
+      // Get user data to get user_id
+      const userResponse = await fetch(
+        `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/user/${encodeURIComponent(userEmail)}`
+      );
       const userData = await userResponse.json();
 
       if (!userData.success || !userData.user) {
@@ -396,10 +373,14 @@ export default function ClipsPage() {
       formData.append('description', description);
       formData.append('user_id', userData.user.id);
 
-      const response = await fetch('http://localhost:3001/api/clips', {
-        method: 'POST',
-        body: formData, // Don't set Content-Type, browser will set it with boundary
-      });
+      // Upload clip via API (multipart/form-data)
+      const response = await fetch(
+        'https://roxie-unpesterous-clerkly.ngrok-free.dev/api/clips',
+        {
+          method: 'POST',
+          body: formData, // Don't set Content-Type, browser will set it with boundary
+        }
+      );
 
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {

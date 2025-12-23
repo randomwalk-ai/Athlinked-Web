@@ -28,19 +28,10 @@ export default function StatsPage() {
           return;
         }
 
-        // Check if it's a username (prefixed with "username:") or email
-        let response;
-        if (userIdentifier.startsWith('username:')) {
-          const username = userIdentifier.replace('username:', '');
-          response = await fetch(
-            `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
-          );
-        } else {
-          response = await fetch(
-            `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
-          );
-        }
-
+        // Fetch user data from backend
+        const response = await fetch(
+          `https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/user/${encodeURIComponent(userEmail)}`
+        );
         const data = await response.json();
 
         if (data.success && data.user) {

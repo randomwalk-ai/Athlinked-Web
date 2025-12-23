@@ -103,7 +103,7 @@ export default function UserTypeSelection({
       <button
         onClick={onContinue}
         disabled={!selectedUserType}
-        className="w-full bg-[#CB9729] hover:bg-[#d4a846] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 sm:mb-6 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-[#CB9729] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 sm:mb-6 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Continue
       </button>

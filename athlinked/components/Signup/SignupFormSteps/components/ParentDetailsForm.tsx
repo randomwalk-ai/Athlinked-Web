@@ -71,8 +71,7 @@ export default function ParentDetailsForm({
 
       <button
         onClick={onContinue}
-        disabled={isLoadingOTP}
-        className="w-full bg-[#CB9729] hover:bg-[#d4a846] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-[#CB9729] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base"
       >
         {isLoadingOTP && (
           <svg

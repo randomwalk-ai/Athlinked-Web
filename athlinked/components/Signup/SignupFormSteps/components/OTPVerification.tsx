@@ -50,7 +50,7 @@ export default function OTPVerification({
 
       // Call backend to verify OTP and create user
       const response = await fetch(
-        'http://localhost:3001/api/signup/verify-otp',
+        'https://roxie-unpesterous-clerkly.ngrok-free.dev/api/signup/verify-otp',
         {
           method: 'POST',
           headers: {
@@ -180,7 +180,7 @@ export default function OTPVerification({
       <button
         onClick={handleContinue}
         disabled={isSubmitting || isVerified}
-        className="w-full bg-[#CB9729] hover:bg-[#d4a846] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-[#CB9729] text-gray-800 font-medium py-3 rounded-lg transition-all mb-4 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting
           ? 'Creating Account...'
