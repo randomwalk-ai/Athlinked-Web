@@ -56,7 +56,6 @@ export default function ArticleEventModal({
   const [articleImagePreview, setArticleImagePreview] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Initialize editor content
   useEffect(() => {
     if (editorRef.current && !body && editorRef.current.innerHTML === '') {
       editorRef.current.innerHTML = '';
@@ -120,11 +119,9 @@ export default function ArticleEventModal({
     editorRef.current.focus();
     
     if (command === 'formatBlock' && value) {
-      // For headings, use formatBlock command
       try {
         document.execCommand('formatBlock', false, `<${value}>`);
       } catch (e) {
-        // Fallback: wrap selection in heading tag
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
@@ -138,7 +135,6 @@ export default function ArticleEventModal({
               range.insertNode(heading);
             }
           } else {
-            // Insert heading at cursor
             const heading = document.createElement(value);
             heading.textContent = 'Heading';
             range.insertNode(heading);
@@ -153,7 +149,6 @@ export default function ArticleEventModal({
       document.execCommand(command, false, value);
     }
     
-    // Update body state
     if (editorRef.current) {
       setBody(editorRef.current.innerHTML);
     }
@@ -181,8 +176,6 @@ export default function ArticleEventModal({
       return;
     }
 
-    // Store data before resetting
-    // For articles, body contains HTML, so we don't trim it
     const submitData = {
       title: title.trim(),
       body: postType === 'article' ? (body || undefined) : (body.trim() || undefined),
@@ -193,7 +186,6 @@ export default function ArticleEventModal({
       eventType: postType === 'event' ? selectedEventType || undefined : undefined,
     };
 
-    // Reset all state first to prevent showing event selection
     setTitle('');
     setBody('');
     setDate('');
@@ -205,19 +197,15 @@ export default function ArticleEventModal({
     setArticleImage(null);
     setArticleImagePreview(null);
     
-    // Clear editor content
     if (editorRef.current) {
       editorRef.current.innerHTML = '';
     }
     
-    // Close the modal immediately
     onClose();
     
-    // Then submit (parent will handle success/failure)
     onSubmit(submitData);
   };
 
-  // Show event type selection for events
   if (postType === 'event' && !selectedEventType) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -227,11 +215,11 @@ export default function ArticleEventModal({
         />
         <div className="relative z-10 w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-200 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-  <div className="flex-1" /> {/* Spacer for centering */}
+  <div className="flex-1" />
   <h2 className="text-2xl font-semibold text-gray-900">
     Create life events
   </h2>
-  <div className="flex-1 flex justify-end"> {/* Spacer and align button to right */}
+  <div className="flex-1 flex justify-end">
     <button
       type="button"
       aria-label="Close"
@@ -268,7 +256,6 @@ export default function ArticleEventModal({
     );
   }
 
-  // Show form for articles or selected event type
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
@@ -299,7 +286,6 @@ export default function ArticleEventModal({
         )}
 
         <div className="space-y-4">
-          {/* Image/Video Upload for Events */}
           {postType === 'event' && (
             <div>
               <div
@@ -349,7 +335,6 @@ export default function ArticleEventModal({
             </div>
           )}
 
-          {/* Image/Video Upload for Articles */}
           {postType === 'article' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -528,7 +513,6 @@ export default function ArticleEventModal({
                     <LinkIcon className="w-4 h-4" />
                   </button>
                 </div>
-                {/* Rich Text Editor Content Area */}
                 <div
                   ref={editorRef}
                   contentEditable

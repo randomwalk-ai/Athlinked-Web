@@ -3,8 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import NavigationBar from '@/components/NavigationBar';
-import { Search, Smile, Paperclip, Image as ImageIcon, CheckCheck, Check } from 'lucide-react';
+import { Search, CheckCheck, Check, X } from 'lucide-react';
 import io, { Socket } from 'socket.io-client';
+import EmojiPicker from '@/components/Message/EmojiPicker';
+import GIFPicker from '@/components/Message/GIFPicker';
+import FileUpload from '@/components/Message/FileUpload';
 
 interface Conversation {
   conversation_id: string;
@@ -24,6 +27,8 @@ interface Message {
   is_read: boolean;
   is_read_by_recipient?: boolean;
   is_delivered?: boolean;
+  media_url?: string | null;
+  message_type?: 'text' | 'image' | 'video' | 'file' | 'gif' | null;
 }
 
 interface CurrentUser {
@@ -51,11 +56,13 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedGIF, setSelectedGIF] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch current user
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -97,7 +104,6 @@ export default function MessagesPage() {
     fetchCurrentUser();
   }, []);
 
-  // Initialize Socket.IO connection
   useEffect(() => {
     if (!currentUser?.id) return;
 
@@ -106,32 +112,40 @@ export default function MessagesPage() {
     });
 
     newSocket.on('connect', () => {
-      console.log('Socket connected');
       newSocket.emit('userId', { userId: currentUser.id });
     });
 
-    newSocket.on('receive_message', (data: Message & { conversation_id: string; is_delivered?: boolean }) => {
+    newSocket.on('receive_message', (data: Message & { conversation_id: string; is_delivered?: boolean; media_url?: string; message_type?: string }) => {
       if (selectedConversation?.conversation_id === data.conversation_id) {
-        // Check if this is our own message (sent by us)
         const isOurMessage = data.sender_id === currentUser.id;
         
         setMessages(prev => {
-          // Remove optimistic message if exists
-          const filtered = prev.filter(msg => !msg.message_id.startsWith('temp-'));
+          const filtered = prev.filter(msg => {
+            if (!msg.message_id.startsWith('temp-')) return true;
+            if (msg.sender_id === data.sender_id) {
+              if (msg.media_url && data.media_url) {
+                return false;
+              }
+              if (msg.message === data.message && Math.abs(new Date(msg.created_at).getTime() - new Date(data.created_at).getTime()) < 5000) {
+                return false;
+              }
+            }
+            return true;
+          });
           
-          // Add the real message
           return [...filtered, {
             message_id: data.message_id,
             sender_id: data.sender_id,
-            message: data.message,
+            message: data.message || '',
             created_at: data.created_at,
             is_read: false,
             is_read_by_recipient: false,
-            is_delivered: isOurMessage ? (data.is_delivered || false) : true, // If we sent it, use delivered status; if received, it's delivered to us
+            is_delivered: isOurMessage ? (data.is_delivered || false) : true,
+            media_url: data.media_url || null,
+            message_type: (data.message_type as 'text' | 'image' | 'video' | 'file' | 'gif') || (data.media_url ? 'image' : 'text'),
           }];
         });
       }
-      // Update conversations list
       fetchConversations();
     });
 
@@ -147,15 +161,11 @@ export default function MessagesPage() {
 
     newSocket.on('messages_read', (data: { conversationId: string; readerId: string }) => {
       if (selectedConversation?.conversation_id === data.conversationId) {
-        // readerId is the person who read the messages
-        // For messages we sent, if the reader is the recipient, mark as read
         setMessages(prev =>
           prev.map(msg => {
             if (msg.sender_id === currentUser?.id && data.readerId === selectedConversation.other_user_id) {
-              // We sent this message and the recipient read it
               return { ...msg, is_read_by_recipient: true };
             } else if (msg.sender_id === data.readerId && msg.sender_id !== currentUser?.id) {
-              // Someone else sent this message and we read it
               return { ...msg, is_read: true };
             }
             return msg;
@@ -172,7 +182,6 @@ export default function MessagesPage() {
     };
   }, [currentUser?.id, selectedConversation?.conversation_id]);
 
-  // Fetch conversations
   const fetchConversations = async () => {
     if (!currentUser?.id) return;
     
@@ -195,7 +204,6 @@ export default function MessagesPage() {
     }
   };
 
-  // Fetch messages for selected conversation
   const fetchMessages = async (conversationId: string) => {
     if (!currentUser?.id) return;
     
@@ -205,28 +213,39 @@ export default function MessagesPage() {
       );
 
       if (!response.ok) {
-        console.error('Failed to fetch messages');
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || 'Failed to fetch messages' };
+        }
+        console.error('Failed to fetch messages:', response.status, errorData);
+        setMessages([]);
         return;
       }
 
       const data = await response.json();
       if (data.success && data.messages) {
-        // Map messages to include delivery status
-        const messagesWithStatus = data.messages.map((msg: Message) => ({
+        const messagesWithStatus = data.messages.map((msg: any) => ({
           ...msg,
-          is_delivered: msg.is_read_by_recipient !== undefined ? true : false, // If we have read status, it's delivered
+          is_delivered: msg.is_read_by_recipient !== undefined ? true : false,
           is_read_by_recipient: msg.is_read_by_recipient || false,
+          media_url: msg.media_url || null,
+          message_type: msg.message_type || 'text',
         }));
         setMessages(messagesWithStatus);
-        // Mark messages as read
         markAsRead(conversationId);
+      } else {
+        console.error('Messages API returned unsuccessful response:', data);
+        setMessages([]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
+      setMessages([]);
     }
   };
 
-  // Mark messages as read
   const markAsRead = async (conversationId: string) => {
     if (!currentUser?.id) return;
     
@@ -246,7 +265,6 @@ export default function MessagesPage() {
     }
   };
 
-  // Search users from network
   const searchUsers = async (query: string) => {
     if (!query.trim() || !currentUser?.id) {
       setSearchResults([]);
@@ -277,7 +295,6 @@ export default function MessagesPage() {
     }
   };
 
-  // Handle search input change with debounce
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -299,25 +316,20 @@ export default function MessagesPage() {
     };
   }, [searchQuery, currentUser?.id]);
 
-  // Handle selecting a user from search results
   const handleSelectUser = async (user: SearchUser) => {
     if (!currentUser?.id) return;
 
     try {
-      // Find existing conversation with this user
       const existingConv = conversations.find(
         (conv) => conv.other_user_id === user.id
       );
 
       if (existingConv) {
-        // Open existing conversation
         setSelectedConversation(existingConv);
         setSearchQuery('');
         setShowSearchResults(false);
         return;
       }
-
-      // Create or get conversation
       const response = await fetch(
         'http://localhost:3001/api/messages/conversations/create',
         {
@@ -348,7 +360,6 @@ export default function MessagesPage() {
       const data = await response.json();
       if (data.success && data.conversation) {
         setSelectedConversation(data.conversation);
-        // Refresh conversations list
         await fetchConversations();
         setSearchQuery('');
         setShowSearchResults(false);
@@ -376,21 +387,94 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedConversation || !socket || !currentUser) return;
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageInput(prev => prev + emoji);
+  };
+
+  const handleGIFSelect = (gifUrl: string) => {
+    setSelectedGIF(gifUrl);
+    setSelectedFile(null);
+    setFilePreview(null);
+  };
+
+  const handleFileSelect = async (file: File, type: 'image' | 'video' | 'file') => {
+    setSelectedFile(file);
+    setSelectedGIF(null);
+    
+    if (type === 'image' || type === 'video') {
+      const preview = URL.createObjectURL(file);
+      setFilePreview(preview);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const clearMedia = () => {
+    setSelectedFile(null);
+    setSelectedGIF(null);
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+      setFilePreview(null);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if ((!messageInput.trim() && !selectedFile && !selectedGIF) || !selectedConversation || !socket || !currentUser) return;
 
     const tempMessageId = `temp-${Date.now()}`;
     const messageText = messageInput.trim();
 
-    // Optimistically add message to UI
+    let messageType: 'text' | 'image' | 'video' | 'file' | 'gif' = 'text';
+    let mediaUrl: string | null = null;
+
+    if (selectedGIF) {
+      messageType = 'gif';
+      mediaUrl = selectedGIF;
+    } else if (selectedFile) {
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('conversation_id', selectedConversation.conversation_id);
+        formData.append('sender_id', currentUser.id);
+        formData.append('receiver_id', selectedConversation.other_user_id);
+        if (messageText) {
+          formData.append('message', messageText);
+        }
+
+        const uploadResponse = await fetch('http://localhost:3001/api/messages/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const uploadData = await uploadResponse.json();
+        if (uploadData.success) {
+          mediaUrl = uploadData.media_url;
+          messageType = selectedFile.type.startsWith('image/') ? 'image' : 
+                       selectedFile.type.startsWith('video/') ? 'video' : 'file';
+        } else {
+          throw new Error(uploadData.message || 'Failed to upload file');
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Failed to upload file. Please try again.');
+        return;
+      }
+    }
+
     const optimisticMessage: Message = {
       message_id: tempMessageId,
       sender_id: currentUser.id,
-      message: messageText,
+      message: messageText || (selectedGIF ? 'GIF' : selectedFile?.name || ''),
       created_at: new Date().toISOString(),
       is_read: false,
       is_read_by_recipient: false,
       is_delivered: false,
+      media_url: mediaUrl || selectedGIF || null,
+      message_type: messageType,
     };
 
     setMessages(prev => [...prev, optimisticMessage]);
@@ -398,10 +482,13 @@ export default function MessagesPage() {
     socket.emit('send_message', {
       conversationId: selectedConversation.conversation_id,
       receiverId: selectedConversation.other_user_id,
-      message: messageText,
+      message: messageText || (selectedGIF ? 'GIF' : selectedFile?.name || ''),
+      media_url: mediaUrl || selectedGIF || null,
+      message_type: messageType,
     });
 
     setMessageInput('');
+    clearMedia();
     fetchConversations();
   };
 
@@ -432,32 +519,26 @@ export default function MessagesPage() {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    // Format time as "HH:MM AM/PM"
     const timeString = date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
     });
 
-    // If less than 1 minute ago, show "Just now"
     if (minutes < 1) {
       return 'Just now';
     }
-    // If today, show time only
     if (date.toDateString() === now.toDateString()) {
       return timeString;
     }
-    // If yesterday, show "Yesterday"
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
     }
-    // If within this week, show day name
     if (days < 7) {
       return date.toLocaleDateString('en-US', { weekday: 'short' });
     }
-    // Otherwise show date
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -484,33 +565,27 @@ export default function MessagesPage() {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    // Format time as "HH:MM AM/PM"
     const timeString = date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
     });
 
-    // If less than 1 minute ago, show "Just now"
     if (minutes < 1) {
       return 'Just now';
     }
-    // If today, show time only
     if (date.toDateString() === now.toDateString()) {
       return timeString;
     }
-    // If yesterday, show "Yesterday" and time
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
       return `Yesterday ${timeString}`;
     }
-    // If within this week, show day name and time
     if (days < 7) {
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
       return `${dayName} ${timeString}`;
     }
-    // Otherwise show date and time
     return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -537,7 +612,6 @@ export default function MessagesPage() {
         </div>
 
         <div className="flex-1 flex gap-4 px-4 overflow-hidden">
-          {/* Messages List Panel */}
           <div className="w-80 bg-white rounded-lg border border-gray-200 flex flex-col overflow-hidden">
             <div className="p-4 border-b border-gray-200 relative">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Messages</h2>
@@ -561,13 +635,11 @@ export default function MessagesPage() {
                     }
                   }}
                   onBlur={() => {
-                    // Delay to allow click on search results
                     setTimeout(() => setShowSearchResults(false), 200);
                   }}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CB9729] text-black"
                 />
                 
-                {/* Search Results Dropdown */}
                 {showSearchResults && searchResults.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
                     {searchResults.map((user) => (
@@ -667,11 +739,9 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          {/* Chat Panel */}
           <div className="flex-1 bg-white rounded-lg border border-gray-200 flex flex-col overflow-hidden">
             {selectedConversation ? (
               <>
-                {/* Chat Header */}
                 <div className="p-4 border-b border-gray-200 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden border border-gray-200 flex items-center justify-center">
                     {selectedConversation.other_user_profile_image ? (
@@ -691,7 +761,6 @@ export default function MessagesPage() {
                   </span>
                 </div>
 
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.map((msg, index) => {
                     const isOwnMessage = msg.sender_id === currentUser?.id;
@@ -731,27 +800,63 @@ export default function MessagesPage() {
                             </div>
                           )}
                           <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            className={`max-w-xs lg:max-w-md rounded-lg overflow-hidden ${
                               isOwnMessage
                                 ? 'bg-white border border-gray-200'
                                 : 'bg-gray-100'
                             }`}
                           >
-                            <p className="text-sm text-gray-900">{msg.message}</p>
-                            <div className={`flex items-center justify-end gap-1.5 mt-1 ${isOwnMessage ? '' : 'justify-start'}`}>
+                            {msg.media_url && (
+                              <div className="w-full">
+                                {(msg.message_type === 'image' || msg.message_type === 'gif' || (!msg.message_type && msg.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i))) ? (
+                                  <img
+                                    src={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`}
+                                    alt={msg.message || 'Media'}
+                                    className="w-full h-auto object-cover max-w-md"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (msg.message_type === 'video' || msg.media_url.match(/\.(mp4|mov|webm|ogg)$/i)) ? (
+                                  <video
+                                    src={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`}
+                                    controls
+                                    className="w-full h-auto max-w-md"
+                                    onError={() => {}}
+                                  />
+                                ) : (msg.message_type === 'file' || msg.media_url) ? (
+                                  <div className="p-3 bg-gray-50 border-b border-gray-200">
+                                    <a
+                                      href={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`}
+                                      download
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                                    >
+                                      <span className="text-sm font-medium">{msg.message || 'Download file'}</span>
+                                    </a>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )}
+                            
+                            {msg.message && (
+                              <p className={`text-sm text-gray-900 ${msg.media_url ? 'px-4 py-2' : 'px-4 py-2'}`}>
+                                {msg.message}
+                              </p>
+                            )}
+                            
+                            <div className={`flex items-center justify-end gap-1.5 px-4 pb-2 ${isOwnMessage ? '' : 'justify-start'}`}>
                               <span className="text-xs text-gray-500">
                                 {formatMessageTimestamp(msg.created_at)}
                               </span>
                               {isOwnMessage && (
                                 <div className="flex items-center">
                                   {msg.is_read_by_recipient ? (
-                                    // Blue double tick - message seen/read
                                     <CheckCheck size={16} className="text-[#53BDEB]" strokeWidth={2.5} />
                                   ) : msg.is_delivered ? (
-                                    // Gray double tick - message reached/delivered
                                     <CheckCheck size={16} className="text-[#8696A0]" strokeWidth={2.5} />
                                   ) : (
-                                    // Single tick - message sent
                                     <Check size={12} className="text-[#8696A0]" strokeWidth={2.5} />
                                   )}
                                 </div>
@@ -765,12 +870,52 @@ export default function MessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
                 <div className="p-4 border-t border-gray-200">
+                  {(selectedFile || selectedGIF || filePreview) && (
+                    <div className="mb-2 relative">
+                      <div className="relative inline-block max-w-xs">
+                        {selectedGIF ? (
+                          <img
+                            src={selectedGIF}
+                            alt="Selected GIF"
+                            className="max-h-32 rounded-lg"
+                          />
+                        ) : filePreview ? (
+                          selectedFile?.type.startsWith('video/') ? (
+                            <video
+                              src={filePreview}
+                              className="max-h-32 rounded-lg"
+                              controls
+                            />
+                          ) : (
+                            <img
+                              src={filePreview}
+                              alt="Preview"
+                              className="max-h-32 rounded-lg"
+                            />
+                          )
+                        ) : selectedFile ? (
+                          <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg">
+                            <span className="text-sm text-gray-700">{selectedFile.name}</span>
+                            <span className="text-xs text-gray-500">
+                              ({(selectedFile.size / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={clearMedia}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2">
-                    <button className="p-2 text-gray-500 hover:text-gray-700">
-                      <Smile size={20} />
-                    </button>
+                    <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                    <GIFPicker onGIFSelect={handleGIFSelect} />
                     <input
                       type="text"
                       placeholder="Message"
@@ -783,11 +928,13 @@ export default function MessagesPage() {
                       }}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#CB9729] text-black"
                     />
-                    <button className="p-2 text-gray-500 hover:text-gray-700">
-                      <Paperclip size={20} />
-                    </button>
-                    <button className="p-2 text-gray-500 hover:text-gray-700">
-                      <ImageIcon size={20} />
+                    <FileUpload onFileSelect={handleFileSelect} />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={(!messageInput.trim() && !selectedFile && !selectedGIF)}
+                      className="px-4 py-2 bg-[#CB9729] text-white font-semibold rounded-lg hover:bg-[#b78322] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Send
                     </button>
                   </div>
                 </div>

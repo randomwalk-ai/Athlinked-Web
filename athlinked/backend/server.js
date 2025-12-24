@@ -5,10 +5,8 @@ require('dotenv').config();
 
 const PORT = process.env.PORT || 3001;
 
-// Create HTTP server
 const server = http.createServer(app);
 
-// Initialize Socket.IO
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -16,66 +14,56 @@ const io = new Server(server, {
   },
 });
 
-// Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  // Store userId in socket data
   let socketUserId = null;
 
-  // Handle userId on connection
   socket.on('userId', (data) => {
     const { userId } = data;
     if (userId) {
       socketUserId = userId;
       socket.userId = userId;
-      // Join user-specific room
       socket.join(`user:${userId}`);
-      console.log(`User ${userId} joined room user:${userId}`);
     }
   });
 
-  // Handle send_message event
   socket.on('send_message', async (data) => {
     try {
-      const { conversationId, receiverId, message } = data;
+      const { conversationId, receiverId, message, media_url, message_type } = data;
 
-      if (!conversationId || !receiverId || !message) {
+      if (!conversationId || !receiverId || (!message && !media_url)) {
         socket.emit('error', { message: 'Missing required fields' });
         return;
       }
 
-      // Get sender ID from socket
       const senderId = socket.userId || socketUserId;
       if (!senderId) {
         socket.emit('error', { message: 'User not authenticated. Please send userId first.' });
         return;
       }
 
-      // Import messages service
       const messagesService = require('./messages/messages.service');
 
-      // Send message using service
       const createdMessage = await messagesService.sendMessage(
         senderId,
         receiverId,
-        message
+        message || '',
+        media_url || null,
+        message_type || 'text'
       );
 
-      // Check if receiver is online
       const receiverSockets = await io.in(`user:${receiverId}`).fetchSockets();
       const isReceiverOnline = receiverSockets.length > 0;
 
-      // Emit to receiver
       io.to(`user:${receiverId}`).emit('receive_message', {
         message_id: createdMessage.id,
         conversation_id: createdMessage.conversation_id,
         sender_id: createdMessage.sender_id,
         message: createdMessage.message,
+        media_url: createdMessage.media_url,
+        message_type: createdMessage.message_type,
         created_at: createdMessage.created_at,
       });
 
-      // Emit message delivered to sender if receiver is online
       if (isReceiverOnline) {
         socket.emit('message_delivered', {
           message_id: createdMessage.id,
@@ -83,12 +71,13 @@ io.on('connection', (socket) => {
         });
       }
 
-      // Also emit back to sender for confirmation
       socket.emit('receive_message', {
         message_id: createdMessage.id,
         conversation_id: createdMessage.conversation_id,
         sender_id: createdMessage.sender_id,
         message: createdMessage.message,
+        media_url: createdMessage.media_url,
+        message_type: createdMessage.message_type,
         created_at: createdMessage.created_at,
         is_delivered: isReceiverOnline,
       });
@@ -99,11 +88,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
   });
 });
 
-// Make io available to other modules if needed
 app.set('io', io);
 
 server.listen(PORT, () => {

@@ -21,10 +21,10 @@ async function createPost(req, res) {
       event_type,
     } = req.body;
 
-    if (!post_type || !['photo', 'video', 'article', 'event'].includes(post_type)) {
+    if (!post_type || !['photo', 'video', 'article', 'event', 'text'].includes(post_type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid post_type. Must be photo, video, article, or event',
+        message: 'Invalid post_type. Must be photo, video, article, event, or text',
       });
     }
 
