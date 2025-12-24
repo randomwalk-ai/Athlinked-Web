@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Header from '@/components/Header';
 import NavigationBar from '@/components/NavigationBar';
 import RightSideBar from '@/components/RightSideBar';
 
@@ -18,6 +19,7 @@ export default function NetworkPage() {
   const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ full_name?: string; profile_url?: string } | null>(null);
   const [followStatuses, setFollowStatuses] = useState<{ [key: string]: boolean }>({});
 
   // Fetch current user ID
@@ -45,6 +47,10 @@ export default function NetworkPage() {
           const data = await response.json();
           if (data.success && data.user) {
             setCurrentUserId(data.user.id);
+            setCurrentUser({
+              full_name: data.user.full_name,
+              profile_url: data.user.profile_url,
+            });
           }
         }
       } catch (error) {
@@ -165,8 +171,8 @@ export default function NetworkPage() {
   };
 
   // Get profile URL helper
-  const getProfileUrl = (profileUrl: string | null | undefined): string | null => {
-    if (!profileUrl || profileUrl.trim() === '') return null;
+  const getProfileUrl = (profileUrl?: string | null): string | undefined => {
+    if (!profileUrl || profileUrl.trim() === '') return undefined;
     if (profileUrl.startsWith('http')) return profileUrl;
     if (profileUrl.startsWith('/') && !profileUrl.startsWith('/assets')) {
       return `http://localhost:3001${profileUrl}`;
@@ -285,12 +291,21 @@ export default function NetworkPage() {
   const currentList = activeTab === 'followers' ? followers : following;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <NavigationBar activeItem="network" />
+    <div className="h-screen bg-[#D4D4D4] flex flex-col overflow-hidden">
+      <Header
+        userName={currentUser?.full_name}
+        userProfileUrl={getProfileUrl(currentUser?.profile_url)}
+      />
       
-      <div className="flex-1 flex p-5 gap-5">
-        {/* Main Content */}
-        <div className="flex-1 bg-white rounded-xl p-6">
+      <div className="flex flex-1 w-full mt-5 overflow-hidden">
+        {/* Navigation Bar */}
+        <div className="hidden md:flex px-6">
+          <NavigationBar activeItem="network" />
+        </div>
+        
+        <div className="flex-1 flex p-5 gap-5 overflow-y-auto">
+          {/* Main Content */}
+          <div className="flex-1 bg-white rounded-xl p-6">
           {/* Followers/Followings Section */}
           <div className="mb-8">
             <div className="flex border-b border-gray-200 mb-6">
@@ -380,12 +395,12 @@ export default function NetworkPage() {
               </div>
             )}
           </div>
+          </div>
 
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="hidden lg:flex">
-          <RightSideBar />
+          {/* Right Sidebar */}
+          <div className="hidden lg:flex">
+            <RightSideBar />
+          </div>
         </div>
       </div>
     </div>

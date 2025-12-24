@@ -626,6 +626,19 @@ export default function ClipsPage() {
                       className="relative bg-black rounded-lg overflow-hidden shadow-2xl"
                       style={{ width: '500px', aspectRatio: '9/16' }}
                     >
+                      {/* Create Button - Top Left (Fixed Position) */}
+                      {index === currentReelIndex && (
+                        <div className="absolute top-5 left-5 z-30">
+                          <button
+                            onClick={() => setShowUploadModal(true)}
+                            className="bg-[#CB9729] hover:bg-yellow-600 text-white rounded-full px-4 py-2 flex items-center gap-2 shadow-lg transition-colors"
+                          >
+                            <Plus size={20} />
+                            <span className="text-sm font-medium">Create</span>
+                          </button>
+                        </div>
+                      )}
+
                       <video
                         ref={el => {
                           videoRefs.current[reel.id] = el;
@@ -769,17 +782,6 @@ export default function ClipsPage() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Create Button - Top Right */}
-          <div className="absolute top-2 right-240 z-20">
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="bg-[#CB9729] hover:bg-yellow-600 text-white rounded-full px-4 py-2 flex items-center gap-2 shadow-lg transition-colors"
-            >
-              <Plus size={20} />
-              <span className="text-sm font-medium">Create</span>
-            </button>
           </div>
 
           {/* Comments Section - Visible when comment button is pressed */}

@@ -18,6 +18,7 @@ async function createPost(req, res) {
       event_title,
       event_date,
       event_location,
+      event_type,
     } = req.body;
 
     if (!post_type || !['photo', 'video', 'article', 'event'].includes(post_type)) {
@@ -48,6 +49,7 @@ async function createPost(req, res) {
       event_title: event_title || null,
       event_date: event_date || null,
       event_location: event_location || null,
+      event_type: event_type || null,
     };
 
     const result = await postsService.createPostService(postData, userId);

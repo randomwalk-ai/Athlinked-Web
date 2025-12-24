@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
+import Header from '@/components/Header';
 import NavigationBar from '@/components/NavigationBar';
 import RightSideBar from '@/components/RightSideBar';
 import ResourceCard from '@/components/Resources/ResourceCard';
@@ -53,6 +54,7 @@ export default function ManageResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ full_name?: string; profile_url?: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [resourceToDelete, setResourceToDelete] = useState<string | null>(null);
 
@@ -81,6 +83,10 @@ export default function ManageResourcesPage() {
           const data = await response.json();
           if (data.success && data.user) {
             setCurrentUserId(data.user.id);
+            setCurrentUser({
+              full_name: data.user.full_name,
+              profile_url: data.user.profile_url,
+            });
           }
         }
       } catch (error) {
@@ -537,13 +543,31 @@ export default function ManageResourcesPage() {
     setArticleUrl('');
   };
 
-  return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <NavigationBar activeItem="resource" />
+  // Construct profile URL - return undefined if no profileUrl exists
+  const getProfileUrl = (profileUrl?: string | null): string | undefined => {
+    if (!profileUrl || profileUrl.trim() === '') return undefined;
+    if (profileUrl.startsWith('http')) return profileUrl;
+    if (profileUrl.startsWith('/') && !profileUrl.startsWith('/assets')) {
+      return `http://localhost:3001${profileUrl}`;
+    }
+    return profileUrl;
+  };
 
-      <div className="flex p-5 flex-1">
-        <div className="flex-1 bg-white mt-0 ml-5 mr-5 mb-5 rounded-xl flex flex-col">
+  return (
+    <div className="h-screen bg-[#D4D4D4] flex flex-col overflow-hidden">
+      <Header
+        userName={currentUser?.full_name}
+        userProfileUrl={getProfileUrl(currentUser?.profile_url)}
+      />
+      
+      <div className="flex flex-1 w-full mt-5 overflow-hidden">
+        {/* Navigation Bar */}
+        <div className="hidden md:flex px-6">
+          <NavigationBar activeItem="resource" />
+        </div>
+
+        <div className="flex-1 flex p-5 overflow-y-auto">
+          <div className="flex-1 bg-white rounded-xl flex flex-col">
           {/* Tabs Navigation */}
           <div className="border-b border-gray-200">
             <div className="max-w-7xl mx-auto">
@@ -650,8 +674,11 @@ export default function ManageResourcesPage() {
           </div>
         </div>
 
-        <RightSideBar />
+        <div className="hidden lg:flex">
+          <RightSideBar />
+        </div>
       </div>
+    </div>
 
       <ResourceModals
         showUrlModal={showUrlModal}
