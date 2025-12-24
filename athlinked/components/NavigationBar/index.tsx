@@ -214,7 +214,7 @@ export default function NavigationBar({
                     href={href}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-[#CB9729] text-white'
+                        ? ' text-[#CB9729]'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >

@@ -65,15 +65,22 @@ export default function HomeHerosection({
       throw new Error('User not logged in');
     }
 
+    const headers = {
+      'ngrok-skip-browser-warning': 'true',
+      'Content-Type': 'application/json'
+    };
+
     let userResponse;
     if (userIdentifier.startsWith('username:')) {
       const username = userIdentifier.replace('username:', '');
       userResponse = await fetch(
-        `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`
+        `http://localhost:3001/api/signup/user-by-username/${encodeURIComponent(username)}`,
+        { headers }
       );
     } else {
       userResponse = await fetch(
-        `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`
+        `http://localhost:3001/api/signup/user/${encodeURIComponent(userIdentifier)}`,
+        { headers }
       );
     }
 
@@ -99,6 +106,7 @@ export default function HomeHerosection({
       const response = await fetch('http://localhost:3001/api/posts', {
         method: 'POST',
         headers: {
+          'ngrok-skip-browser-warning': 'true',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -140,6 +148,9 @@ export default function HomeHerosection({
 
       const response = await fetch('http://localhost:3001/api/posts', {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: formData,
       });
 
@@ -166,52 +177,111 @@ export default function HomeHerosection({
     date?: string;
     location?: string;
     caption?: string;
+    image?: File;
+    eventType?: string;
   }) => {
     setIsUploading(true);
     try {
       const userData = await getUserData();
 
-      const postData: any = {
-        user_id: userData.id,
-        post_type: selectedPostType,
-        caption: data.caption || null,
-      };
+      // If there's an image, use FormData
+      if (data.image) {
+        const formData = new FormData();
+        formData.append('media', data.image);
+        formData.append('user_id', userData.id);
+        formData.append('post_type', selectedPostType!);
+        if (data.caption) {
+          formData.append('caption', data.caption);
+        }
 
-      if (selectedPostType === 'article') {
-        postData.article_title = data.title;
-        postData.article_body = data.body;
-      } else if (selectedPostType === 'event') {
-        postData.event_title = data.title;
-        postData.event_date = data.date;
-        postData.event_location = data.location;
-      }
+        if (selectedPostType === 'article') {
+          formData.append('article_title', data.title);
+          if (data.body) {
+            formData.append('article_body', data.body);
+          }
+          if (data.caption) {
+            formData.append('caption', data.caption);
+          }
+        } else if (selectedPostType === 'event') {
+          formData.append('event_title', data.title);
+          if (data.date) {
+            formData.append('event_date', data.date);
+          }
+          if (data.location) {
+            formData.append('event_location', data.location);
+          }
+          if (data.eventType) {
+            formData.append('event_type', data.eventType);
+          }
+        }
 
-      const response = await fetch('http://localhost:3001/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(postData),
-      });
+        const response = await fetch('http://localhost:3001/api/posts', {
+          method: 'POST',
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+          },
+          body: formData,
+        });
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text.substring(0, 200));
-        alert('Failed to create post. Server returned invalid response.');
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Create article/event post response:', result);
-      
-      if (result.success) {
-        setShowArticleEvent(false);
-        if (onPostCreated) {
-          onPostCreated();
+        const result = await response.json();
+        console.log('Create article/event post with image response:', result);
+        
+        if (result.success) {
+          setShowArticleEvent(false);
+          if (onPostCreated) {
+            onPostCreated();
+          }
+        } else {
+          alert(result.message || 'Failed to create post');
         }
       } else {
-        alert(result.message || 'Failed to create post');
+        // No image, use JSON
+        const postData: any = {
+          user_id: userData.id,
+          post_type: selectedPostType,
+          caption: data.caption || null,
+        };
+
+        if (selectedPostType === 'article') {
+          postData.article_title = data.title;
+          postData.article_body = data.body;
+        } else if (selectedPostType === 'event') {
+          postData.event_title = data.title;
+          postData.event_date = data.date;
+          postData.event_location = data.location;
+          if (data.eventType) {
+            postData.event_type = data.eventType;
+          }
+        }
+
+        const response = await fetch('http://localhost:3001/api/posts', {
+          method: 'POST',
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
+        });
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response:', text.substring(0, 200));
+          alert('Failed to create post. Server returned invalid response.');
+          return;
+        }
+
+        const result = await response.json();
+        console.log('Create article/event post response:', result);
+        
+        if (result.success) {
+          setShowArticleEvent(false);
+          if (onPostCreated) {
+            onPostCreated();
+          }
+        } else {
+          alert(result.message || 'Failed to create post');
+        }
       }
     } catch (error) {
       console.error('Error creating article/event post:', error);
