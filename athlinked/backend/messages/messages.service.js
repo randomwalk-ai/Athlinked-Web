@@ -1,7 +1,7 @@
 const messagesModel = require('./messages.model');
 const pool = require('../config/db');
 
-async function sendMessage(senderId, receiverId, message, mediaUrl = null, messageType = 'text') {
+async function sendMessage(senderId, receiverId, message, mediaUrl = null, messageType = 'text', postData = null) {
   const client = await pool.connect();
 
   try {
@@ -19,7 +19,8 @@ async function sendMessage(senderId, receiverId, message, mediaUrl = null, messa
       message,
       client,
       mediaUrl,
-      messageType
+      messageType,
+      postData
     );
 
     const lastMessageText = message || (mediaUrl ? (messageType === 'gif' ? 'GIF' : 'Media') : '');

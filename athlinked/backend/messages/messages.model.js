@@ -70,7 +70,7 @@ async function getOrCreateConversation(userId1, userId2, client = null) {
   }
 }
 
-async function createMessage(conversationId, senderId, message, client = null, mediaUrl = null, messageType = 'text') {
+async function createMessage(conversationId, senderId, message, client = null, mediaUrl = null, messageType = 'text', postData = null) {
   const dbClient = client || pool;
   
   const userQuery = 'SELECT full_name, username FROM users WHERE id = $1';
@@ -83,15 +83,29 @@ async function createMessage(conversationId, senderId, message, client = null, m
     SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name = 'messages' 
-    AND column_name IN ('media_url', 'message_type')
+    AND column_name IN ('media_url', 'message_type', 'post_data')
   `;
   const columnsResult = await dbClient.query(checkColumnsQuery);
   const hasMediaUrl = columnsResult.rows.some(row => row.column_name === 'media_url');
   const hasMessageType = columnsResult.rows.some(row => row.column_name === 'message_type');
+  const hasPostData = columnsResult.rows.some(row => row.column_name === 'post_data');
   
   const messageId = uuidv4();
+  const postDataJson = postData ? (typeof postData === 'string' ? postData : JSON.stringify(postData)) : null;
   
-  if (hasMediaUrl && hasMessageType) {
+  if (hasMediaUrl && hasMessageType && hasPostData) {
+    const query = `
+      INSERT INTO messages (id, conversation_id, sender_id, sender_name, message, media_url, message_type, post_data, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      RETURNING *
+    `;
+    const values = [messageId, conversationId, senderId, senderName, message, mediaUrl, messageType, postDataJson];
+    const result = await dbClient.query(query, values);
+    return {
+      ...result.rows[0],
+      post_data: result.rows[0].post_data ? (typeof result.rows[0].post_data === 'string' ? JSON.parse(result.rows[0].post_data) : result.rows[0].post_data) : null,
+    };
+  } else if (hasMediaUrl && hasMessageType) {
     const query = `
       INSERT INTO messages (id, conversation_id, sender_id, sender_name, message, media_url, message_type, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
@@ -99,7 +113,10 @@ async function createMessage(conversationId, senderId, message, client = null, m
     `;
     const values = [messageId, conversationId, senderId, senderName, message, mediaUrl, messageType];
     const result = await dbClient.query(query, values);
-    return result.rows[0];
+    return {
+      ...result.rows[0],
+      post_data: postDataJson ? (typeof postDataJson === 'string' ? JSON.parse(postDataJson) : postDataJson) : null,
+    };
   } else {
     const query = `
       INSERT INTO messages (id, conversation_id, sender_id, sender_name, message, created_at)
@@ -112,6 +129,7 @@ async function createMessage(conversationId, senderId, message, client = null, m
       ...result.rows[0],
       media_url: null,
       message_type: 'text',
+      post_data: postDataJson ? (typeof postDataJson === 'string' ? JSON.parse(postDataJson) : postDataJson) : null,
     };
   }
 }
@@ -192,14 +210,16 @@ async function getMessagesForConversation(conversationId, userId) {
     SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name = 'messages' 
-    AND column_name IN ('media_url', 'message_type')
+    AND column_name IN ('media_url', 'message_type', 'post_data')
   `;
   const columnsResult = await pool.query(checkColumnsQuery);
   const hasMediaUrl = columnsResult.rows.some(row => row.column_name === 'media_url');
   const hasMessageType = columnsResult.rows.some(row => row.column_name === 'message_type');
+  const hasPostData = columnsResult.rows.some(row => row.column_name === 'post_data');
 
   const mediaUrlSelect = hasMediaUrl ? 'm.media_url,' : 'NULL as media_url,';
   const messageTypeSelect = hasMessageType ? 'm.message_type,' : 'NULL as message_type,';
+  const postDataSelect = hasPostData ? 'm.post_data,' : 'NULL as post_data,';
 
   const query = `
     SELECT 
@@ -209,6 +229,7 @@ async function getMessagesForConversation(conversationId, userId) {
       m.message,
       ${mediaUrlSelect}
       ${messageTypeSelect}
+      ${postDataSelect}
       m.created_at,
       -- is_read: true if current user has read this message (for received messages)
       CASE WHEN mr.id IS NOT NULL THEN true ELSE false END as is_read,

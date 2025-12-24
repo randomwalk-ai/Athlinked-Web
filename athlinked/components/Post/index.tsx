@@ -583,6 +583,7 @@ export default function Post({
         post={post}
         onClose={() => setShowShare(false)}
         onShare={handleShareComplete}
+        currentUserId={currentUserId}
       />
 
       <SaveModal

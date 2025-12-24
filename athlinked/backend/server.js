@@ -28,9 +28,9 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (data) => {
     try {
-      const { conversationId, receiverId, message, media_url, message_type } = data;
+      const { conversationId, receiverId, message, media_url, message_type, post_data } = data;
 
-      if (!conversationId || !receiverId || (!message && !media_url)) {
+      if (!conversationId || !receiverId || (!message && !media_url && !post_data)) {
         socket.emit('error', { message: 'Missing required fields' });
         return;
       }
@@ -48,7 +48,8 @@ io.on('connection', (socket) => {
         receiverId,
         message || '',
         media_url || null,
-        message_type || 'text'
+        message_type || 'text',
+        post_data || null
       );
 
       const receiverSockets = await io.in(`user:${receiverId}`).fetchSockets();
@@ -61,6 +62,7 @@ io.on('connection', (socket) => {
         message: createdMessage.message,
         media_url: createdMessage.media_url,
         message_type: createdMessage.message_type,
+        post_data: createdMessage.post_data,
         created_at: createdMessage.created_at,
       });
 
@@ -78,6 +80,7 @@ io.on('connection', (socket) => {
         message: createdMessage.message,
         media_url: createdMessage.media_url,
         message_type: createdMessage.message_type,
+        post_data: createdMessage.post_data,
         created_at: createdMessage.created_at,
         is_delivered: isReceiverOnline,
       });

@@ -28,7 +28,8 @@ interface Message {
   is_read_by_recipient?: boolean;
   is_delivered?: boolean;
   media_url?: string | null;
-  message_type?: 'text' | 'image' | 'video' | 'file' | 'gif' | null;
+  message_type?: 'text' | 'image' | 'video' | 'file' | 'gif' | 'post' | null;
+  post_data?: any | null;
 }
 
 interface CurrentUser {
@@ -133,6 +134,29 @@ export default function MessagesPage() {
             return true;
           });
           
+          let messageType = data.message_type as 'text' | 'image' | 'video' | 'file' | 'gif' | 'post';
+          if (!messageType && data.post_data) {
+            messageType = 'post';
+          } else if (!messageType && data.media_url) {
+            const url = data.media_url.toLowerCase();
+            if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || url.includes('giphy.com')) {
+              messageType = url.includes('giphy.com') ? 'gif' : 'image';
+            } else if (url.match(/\.(mp4|mov|webm|ogg)$/i)) {
+              messageType = 'video';
+            } else {
+              messageType = 'file';
+            }
+          }
+          
+          let postData = null;
+          if (data.post_data) {
+            try {
+              postData = typeof data.post_data === 'string' ? JSON.parse(data.post_data) : data.post_data;
+            } catch (e) {
+              console.error('Error parsing post_data:', e);
+            }
+          }
+          
           return [...filtered, {
             message_id: data.message_id,
             sender_id: data.sender_id,
@@ -142,7 +166,8 @@ export default function MessagesPage() {
             is_read_by_recipient: false,
             is_delivered: isOurMessage ? (data.is_delivered || false) : true,
             media_url: data.media_url || null,
-            message_type: (data.message_type as 'text' | 'image' | 'video' | 'file' | 'gif') || (data.media_url ? 'image' : 'text'),
+            message_type: messageType || 'text',
+            post_data: postData,
           }];
         });
       }
@@ -227,13 +252,37 @@ export default function MessagesPage() {
 
       const data = await response.json();
       if (data.success && data.messages) {
-        const messagesWithStatus = data.messages.map((msg: any) => ({
-          ...msg,
-          is_delivered: msg.is_read_by_recipient !== undefined ? true : false,
-          is_read_by_recipient: msg.is_read_by_recipient || false,
-          media_url: msg.media_url || null,
-          message_type: msg.message_type || 'text',
-        }));
+        const messagesWithStatus = data.messages.map((msg: any) => {
+          let messageType = msg.message_type;
+          if (!messageType && msg.media_url) {
+            const url = msg.media_url.toLowerCase();
+            if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i) || url.includes('giphy.com')) {
+              messageType = url.includes('giphy.com') ? 'gif' : 'image';
+            } else if (url.match(/\.(mp4|mov|webm|ogg)$/i)) {
+              messageType = 'video';
+            } else {
+              messageType = 'file';
+            }
+          }
+          
+          let postData = null;
+          if (msg.post_data) {
+            try {
+              postData = typeof msg.post_data === 'string' ? JSON.parse(msg.post_data) : msg.post_data;
+            } catch (e) {
+              console.error('Error parsing post_data:', e);
+            }
+          }
+          
+          return {
+            ...msg,
+            is_delivered: msg.is_read_by_recipient !== undefined ? true : false,
+            is_read_by_recipient: msg.is_read_by_recipient || false,
+            media_url: msg.media_url || null,
+            message_type: messageType || 'text',
+            post_data: postData,
+          };
+        });
         setMessages(messagesWithStatus);
         markAsRead(conversationId);
       } else {
@@ -806,28 +855,130 @@ export default function MessagesPage() {
                                 : 'bg-gray-100'
                             }`}
                           >
-                            {msg.media_url && (
-                              <div className="w-full">
-                                {(msg.message_type === 'image' || msg.message_type === 'gif' || (!msg.message_type && msg.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i))) ? (
-                                  <img
-                                    src={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`}
-                                    alt={msg.message || 'Media'}
-                                    className="w-full h-auto object-cover max-w-md"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (msg.message_type === 'video' || msg.media_url.match(/\.(mp4|mov|webm|ogg)$/i)) ? (
-                                  <video
-                                    src={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`}
-                                    controls
-                                    className="w-full h-auto max-w-md"
-                                    onError={() => {}}
-                                  />
-                                ) : (msg.message_type === 'file' || msg.media_url) ? (
-                                  <div className="p-3 bg-gray-50 border-b border-gray-200">
+                            {msg.post_data && msg.message_type === 'post' ? (
+                              <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white max-w-md">
+                                <div className="p-3 border-b border-gray-200 flex items-center gap-2">
+                                  {msg.post_data.user_profile_url && (
+                                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0">
+                                      <img
+                                        src={msg.post_data.user_profile_url.startsWith('http') ? msg.post_data.user_profile_url : `http://localhost:3001${msg.post_data.user_profile_url}`}
+                                        alt={msg.post_data.username || 'User'}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">
+                                      {msg.post_data.username || 'User'}
+                                    </p>
+                                  </div>
+                                </div>
+                                {msg.post_data.media_url && (() => {
+                                  const mediaUrl = msg.post_data.media_url.startsWith('http') ? msg.post_data.media_url : `http://localhost:3001${msg.post_data.media_url}`;
+                                  const isVideo = msg.post_data.post_type === 'video' || 
+                                                msg.post_data.media_url.match(/\.(mp4|mov|webm|ogg)$/i);
+                                  
+                                  if (isVideo) {
+                                    return (
+                                      <div className="w-full">
+                                        <video
+                                          src={mediaUrl}
+                                          controls
+                                          className="w-full h-auto object-cover"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                          }}
+                                        />
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className="w-full">
+                                        <img
+                                          src={mediaUrl}
+                                          alt={msg.post_data.caption || msg.post_data.article_title || msg.post_data.event_title || 'Post'}
+                                          className="w-full h-auto object-cover"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                          }}
+                                        />
+                                      </div>
+                                    );
+                                  }
+                                })()}
+                                <div className="p-3">
+                                  {msg.post_data.article_title && (
+                                    <h4 className="font-semibold text-gray-900 mb-2 text-base">{msg.post_data.article_title}</h4>
+                                  )}
+                                  {msg.post_data.event_title && (
+                                    <div className="mb-2">
+                                      <h4 className="font-semibold text-gray-900 mb-1 text-base">{msg.post_data.event_title}</h4>
+                                      {msg.post_data.event_date && (
+                                        <p className="text-xs text-gray-600">📅 {new Date(msg.post_data.event_date).toLocaleDateString()}</p>
+                                      )}
+                                      {msg.post_data.event_location && (
+                                        <p className="text-xs text-gray-600">📍 {msg.post_data.event_location}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                  {msg.post_data.caption && (
+                                    <p className="text-sm text-gray-700 mb-2">{msg.post_data.caption}</p>
+                                  )}
+                                  {msg.post_data.post_url && (
                                     <a
-                                      href={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`}
+                                      href={msg.post_data.post_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                    >
+                                      View Post →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ) : msg.media_url && (() => {
+                              const mediaUrl = msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:3001${msg.media_url}`;
+                              const urlLower = msg.media_url.toLowerCase();
+                              const isImage = msg.message_type === 'image' || msg.message_type === 'gif' || 
+                                            (!msg.message_type && (urlLower.match(/\.(jpg|jpeg|png|gif|webp)$/i) || urlLower.includes('giphy.com')));
+                              const isVideo = msg.message_type === 'video' || 
+                                            (!msg.message_type && urlLower.match(/\.(mp4|mov|webm|ogg)$/i));
+                              const isGif = msg.message_type === 'gif' || urlLower.includes('giphy.com');
+                              
+                              if (isImage || isGif) {
+                                return (
+                                  <div className="w-full">
+                                    <img
+                                      src={mediaUrl}
+                                      alt={msg.message || 'Media'}
+                                      className="w-full h-auto object-cover max-w-md rounded-lg"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              } else if (isVideo) {
+                                return (
+                                  <div className="w-full">
+                                    <video
+                                      src={mediaUrl}
+                                      controls
+                                      className="w-full h-auto max-w-md rounded-lg"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <a
+                                      href={mediaUrl}
                                       download
                                       target="_blank"
                                       rel="noopener noreferrer"
@@ -836,9 +987,9 @@ export default function MessagesPage() {
                                       <span className="text-sm font-medium">{msg.message || 'Download file'}</span>
                                     </a>
                                   </div>
-                                ) : null}
-                              </div>
-                            )}
+                                );
+                              }
+                            })()}
                             
                             {msg.message && (
                               <p className={`text-sm text-gray-900 ${msg.media_url ? 'px-4 py-2' : 'px-4 py-2'}`}>
