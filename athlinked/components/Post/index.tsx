@@ -8,6 +8,17 @@ import {
   Bookmark,
   Trash2,
   MoreVertical,
+  Briefcase,
+  Plane,
+  Trophy,
+  Heart,
+  Stethoscope,
+  GraduationCap,
+  Smile,
+  Flag,
+  ChevronRight,
+  X,
+  Download,
 } from 'lucide-react';
 import CommentsPanel from '../Comment/CommentsPanel';
 import ShareModal from '../Share/ShareModal';
@@ -26,6 +37,7 @@ export interface PostData {
   event_title?: string | null;
   event_date?: string | null;
   event_location?: string | null;
+  event_type?: string | null;
   image_url?: string | null;
   description?: string | null;
   like_count: number;
@@ -62,6 +74,22 @@ export default function Post({
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const getEventTypeIcon = (eventType: string | null | undefined) => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      work: Briefcase,
+      travel: Plane,
+      sports: Trophy,
+      relationship: Heart,
+      health: Stethoscope,
+      academy: GraduationCap,
+      feeling: Smile,
+      custom: Flag,
+    };
+    // Handle case-insensitive matching
+    const normalizedType = eventType?.toLowerCase() || '';
+    return iconMap[normalizedType] || Briefcase;
+  };
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.like_count);
   const [commentCount, setCommentCount] = useState(post.comment_count);
@@ -72,6 +100,7 @@ export default function Post({
   const [saveAlertMessage, setSaveAlertMessage] = useState('');
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showArticleModal, setShowArticleModal] = useState(false);
 
   useEffect(() => {
     const fetchCommentCount = async () => {
@@ -223,6 +252,62 @@ export default function Post({
 
   const isOwnPost = currentUserId && post.user_id && currentUserId === post.user_id;
 
+  const handleDownloadPDF = () => {
+    if (!post.article_title || !post.article_body) return;
+
+    // Create a new window with the article content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${post.article_title}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              max-width: 800px;
+              margin: 40px auto;
+              padding: 20px;
+              line-height: 1.6;
+            }
+            h1 { color: #333; border-bottom: 2px solid #CB9729; padding-bottom: 10px; }
+            .author { color: #666; margin-bottom: 20px; }
+            .content { margin-top: 30px; }
+            .content h1, .content h2, .content h3, .content h4 {
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+            .content p { margin-bottom: 15px; }
+            @media print {
+              body { margin: 0; padding: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${post.article_title}</h1>
+          <div class="author">
+            <strong>Author:</strong> ${post.username}<br>
+            <strong>Date:</strong> ${new Date(post.created_at).toLocaleDateString()}
+          </div>
+          ${post.caption ? `<p><em>${post.caption}</em></p>` : ''}
+          <div class="content">
+            ${post.article_body}
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load, then trigger print
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   return (
     <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* Header */}
@@ -277,20 +362,66 @@ export default function Post({
       {/* Content based on post type */}
       {post.post_type === 'article' && (
         <>
+          {/* Article Image */}
+          {(post.media_url || post.image_url) && (
+            <div className="w-full">
+              <img
+                src={post.media_url && post.media_url.startsWith('http') ? post.media_url : `http://localhost:3001${post.media_url || post.image_url || ''}`}
+                alt={post.article_title || 'Article image'}
+                className="w-full h-auto object-cover"
+                onError={(e) => {
+                  console.error('Error loading image:', post.media_url);
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+          
+          {/* Article Content */}
           {post.article_title && (
-            <div className="px-6 mb-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <div className="px-6 py-4">
+              <h3 className="text-3xl font-bold text-gray-900 mb-3">
                 {post.article_title}
               </h3>
               {post.caption && (
-                <p className="text-md text-gray-600 mb-3">
+                <p className="text-lg text-gray-600 mb-4">
                   {post.caption}
                 </p>
               )}
               {post.article_body && (
-                <p className="text-md text-gray-800 whitespace-pre-wrap">
-                  {post.article_body}
-                </p>
+                <div className="mb-4">
+                  {(() => {
+                    // Strip HTML tags to check length
+                    const textContent = post.article_body.replace(/<[^>]*>/g, '');
+                    const previewLength = 200;
+                    const shouldTruncate = textContent.length > previewLength;
+                    const preview = shouldTruncate 
+                      ? textContent.substring(0, previewLength) + '...'
+                      : textContent;
+                    
+                    return (
+                      <>
+                        {shouldTruncate ? (
+                          <p className="text-base text-gray-800 mb-3">{preview}</p>
+                        ) : (
+                          <div 
+                            className="text-base text-gray-800 prose max-w-none mb-3"
+                            dangerouslySetInnerHTML={{ __html: post.article_body }}
+                          />
+                        )}
+                        <div className="flex justify-end gap-3 mt-4">
+                          <button
+                            onClick={() => setShowArticleModal(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#CB9729] text-white rounded-md hover:bg-[#b78322] transition-colors"
+                          >
+                            Read more
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
               )}
             </div>
           )}
@@ -299,24 +430,71 @@ export default function Post({
 
       {post.post_type === 'event' && (
         <>
+          {/* Event Image/Media */}
+          {(post.media_url || post.image_url) && (
+            <div className="w-full relative">
+              {(post.media_url && post.media_url.match(/\.(mp4|mov)$/i)) || (post.image_url && post.image_url.match(/\.(mp4|mov)$/i)) ? (
+                <video
+                  src={post.media_url && post.media_url.startsWith('http') ? post.media_url : `http://localhost:3001${post.media_url || post.image_url || ''}`}
+                  controls
+                  className="w-full h-auto object-cover"
+                />
+              ) : (
+                <img
+                  src={post.media_url && post.media_url.startsWith('http') ? post.media_url : `http://localhost:3001${post.media_url || post.image_url || ''}`}
+                  alt={post.event_title || 'Event image'}
+                  className="w-full h-auto object-cover"
+                  onError={(e) => {
+                    console.error('Error loading image:', post.media_url);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
+              {/* Event Type Icon - Centered Blue Circle */}
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-10">
+                <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+                  {(() => {
+                    const IconComponent = getEventTypeIcon(post.event_type);
+                    return <IconComponent className="w-10 h-10 text-white" />;
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Event Details - Centered */}
           {post.event_title && (
-            <div className="px-6 mb-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <div className={`px-6 text-center ${(post.media_url || post.image_url) ? 'pt-12 pb-6' : 'py-6'}`}>
+              {!(post.media_url || post.image_url) && (
+                <div className="flex justify-center mb-4">
+                  <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+                    {(() => {
+                      const IconComponent = getEventTypeIcon(post.event_type);
+                      return <IconComponent className="w-10 h-10 text-white" />;
+                    })()}
+                  </div>
+                </div>
+              )}
+              <h3 className="text-4xl font-bold text-gray-900 mb-3">
                 {post.event_title}
               </h3>
-              {post.caption && (
-                <p className="text-md text-gray-600 mb-3">
-                  {post.caption}
-                </p>
-              )}
               {post.event_date && (
-                <p className="text-md text-gray-600 mb-1">
-                  📅 {new Date(post.event_date).toLocaleDateString()}
+                <p className="text-xl text-gray-600 mb-3">
+                  {new Date(post.event_date).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
                 </p>
               )}
               {post.event_location && (
-                <p className="text-md text-gray-600">
+                <p className="text-lg text-gray-600 mb-4">
                   📍 {post.event_location}
+                </p>
+              )}
+              {post.caption && (
+                <p className="text-base text-gray-700 leading-relaxed">
+                  {post.caption}
                 </p>
               )}
             </div>
@@ -432,6 +610,92 @@ export default function Post({
         alertMessage={saveAlertMessage}
         isSaved={isSaved}
       />
+
+      {/* Article View Modal */}
+      {showArticleModal && post.post_type === 'article' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowArticleModal(false)}
+          />
+          <div className="relative z-10 w-full max-w-4xl bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Article</h2>
+              <button
+                type="button"
+                onClick={() => setShowArticleModal(false)}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            {/* User Info */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                {post.user_profile_url && post.user_profile_url.trim() !== '' ? (
+                  <img
+                    src={post.user_profile_url}
+                    alt={post.username}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-600 font-semibold text-sm">
+                    {getInitials(post.username)}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">{post.username}</p>
+                <p className="text-sm text-gray-600">Athlete</p>
+              </div>
+            </div>
+
+            {/* Article Image */}
+            {(post.media_url || post.image_url) && (
+              <div className="w-full">
+                <img
+                  src={post.media_url && post.media_url.startsWith('http') ? post.media_url : `http://localhost:3001${post.media_url || post.image_url || ''}`}
+                  alt={post.article_title || 'Article image'}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            )}
+
+            {/* Article Content */}
+            <div className="px-6 py-6">
+              {post.article_title && (
+                <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                  {post.article_title}
+                </h3>
+              )}
+              {post.caption && (
+                <p className="text-lg text-gray-600 mb-6">
+                  {post.caption}
+                </p>
+              )}
+              {post.article_body && (
+                <div 
+                  className="prose max-w-none text-gray-800"
+                  dangerouslySetInnerHTML={{ __html: post.article_body }}
+                />
+              )}
+            </div>
+
+            {/* Download PDF Button */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end">
+              <button
+                onClick={handleDownloadPDF}
+                className="px-6 py-2 bg-[#CB9729] text-white rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Download PDF File
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Comments Modal */}
       {showComments && (
