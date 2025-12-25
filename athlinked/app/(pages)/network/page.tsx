@@ -303,7 +303,7 @@ export default function NetworkPage() {
           <NavigationBar activeItem="network" />
         </div>
         
-        <div className="flex-1 flex p-5 gap-5 overflow-y-auto">
+        <div className="flex-1 flex gap-5 overflow-y-auto">
           {/* Main Content */}
           <div className="flex-1 bg-white rounded-xl p-6">
           {/* Followers/Followings Section */}

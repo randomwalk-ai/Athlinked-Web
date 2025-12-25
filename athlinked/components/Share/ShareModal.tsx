@@ -40,7 +40,12 @@ export default function ShareModal({
   useEffect(() => {
     if (open && currentUserId) {
       loadFollowingUsers();
-      initializeSocket();
+      // Initialize socket with error handling - don't block modal if it fails
+      initializeSocket().catch((error) => {
+        console.warn('Socket connection failed (this is okay for WhatsApp/Copy Link):', error);
+        // Socket is only needed for sharing to users, not for WhatsApp or copy link
+        // So we continue without it
+      });
     }
     
     return () => {
@@ -168,10 +173,22 @@ export default function ShareModal({
     const selectedUserIds = Array.from(selectedUsers);
     
     try {
-      await initializeSocket();
+      // Try to initialize socket, but handle errors gracefully
+      try {
+        await initializeSocket();
+      } catch (socketError) {
+        console.warn('Socket initialization failed, retrying...', socketError);
+        // Retry once after a short delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          await initializeSocket();
+        } catch (retryError) {
+          throw new Error('Unable to connect to server. Please check your connection and try again.');
+        }
+      }
       
       if (!socketRef.current || !socketRef.current.connected) {
-        throw new Error('Socket connection failed');
+        throw new Error('Socket connection failed. Please try again.');
       }
       
       const shareMessage = message.trim() || `Check out this post!`;
@@ -268,7 +285,8 @@ export default function ShareModal({
       }
     } catch (error) {
       console.error('Error sharing post:', error);
-      alert('Failed to connect. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect. Please try again.';
+      alert(errorMessage);
     }
   };
 

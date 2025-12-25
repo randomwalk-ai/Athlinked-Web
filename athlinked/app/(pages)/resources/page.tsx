@@ -566,7 +566,7 @@ export default function ManageResourcesPage() {
           <NavigationBar activeItem="resource" />
         </div>
 
-        <div className="flex-1 flex p-5 overflow-y-auto">
+        <div className="flex-1 flex overflow-y-auto">
           <div className="flex-1 bg-white rounded-xl flex flex-col">
           {/* Tabs Navigation */}
           <div className="border-b border-gray-200">
@@ -674,7 +674,7 @@ export default function ManageResourcesPage() {
           </div>
         </div>
 
-        <div className="hidden lg:flex">
+        <div className="hidden lg:flex ml-5">
           <RightSideBar />
         </div>
       </div>
